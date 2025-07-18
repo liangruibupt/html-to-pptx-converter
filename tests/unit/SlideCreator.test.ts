@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SlideCreator } from '../../src/services/conversion/SlideCreator';
 import { SlideCreationError } from '../../src/services/conversion/SlideCreatorInterface';
+import { ImageHandlerService } from '../../src/services/conversion/ImageHandlerInterface';
 import { 
   HTMLContent, 
   ConversionConfig, 
@@ -26,6 +27,15 @@ const mockPptxGenerator = {
   addListElement: vi.fn(),
   addLinkElement: vi.fn(),
   savePresentation: vi.fn()
+};
+
+// Mock ImageHandlerService
+const mockImageHandler: ImageHandlerService = {
+  processImage: vi.fn().mockImplementation(async (image) => image),
+  loadImageFromUrl: vi.fn(),
+  convertToDataUrl: vi.fn(),
+  resizeImage: vi.fn(),
+  calculateOptimalDimensions: vi.fn()
 };
 
 describe('SlideCreator', () => {
@@ -93,8 +103,8 @@ describe('SlideCreator', () => {
     mockPptxGenerator.createPresentation.mockReturnValue(mockPresentation);
     mockPptxGenerator.addSlide.mockReturnValue(mockSlide);
     
-    // Create SlideCreator instance with mock PptxGenerator
-    slideCreator = new SlideCreator(mockPptxGenerator);
+    // Create SlideCreator instance with mock services
+    slideCreator = new SlideCreator(mockPptxGenerator, mockImageHandler);
   });
   
   describe('createSlides', () => {
@@ -250,10 +260,15 @@ describe('SlideCreator', () => {
       
       await slideCreator.createSlideFromSection(mockPresentation, section, sampleConfig);
       
+      expect(mockImageHandler.processImage).toHaveBeenCalledWith(
+        imageResource,
+        sampleConfig.imageOptions
+      );
+      
       expect(mockPptxGenerator.addImageElement).toHaveBeenCalledWith(
         mockSlide,
         imageResource,
-        expect.objectContaining({ x: 1, y: 2, w: '85%' })
+        expect.objectContaining({ x: 1, y: 2 })
       );
     });
     
@@ -412,6 +427,16 @@ describe('SlideCreator', () => {
         height: 300
       };
       
+      // Mock the processImage method to return a processed image
+      const processedImage = {
+        ...imageResource,
+        width: 300,
+        height: 180, // Aspect ratio preserved
+        dataUrl: 'data:image/jpeg;base64,processedImage'
+      };
+      
+      mockImageHandler.processImage.mockResolvedValueOnce(processedImage);
+      
       section.elements = [
         {
           type: 'image',
@@ -425,20 +450,25 @@ describe('SlideCreator', () => {
           maxWidth: 300,
           maxHeight: 200,
           preserveAspectRatio: true,
-          quality: 0.8
+          quality: 80
         }
       };
       
       await slideCreator.createSlideFromSection(mockPresentation, section, configWithImageOptions);
       
+      expect(mockImageHandler.processImage).toHaveBeenCalledWith(
+        imageResource,
+        configWithImageOptions.imageOptions
+      );
+      
       expect(mockPptxGenerator.addImageElement).toHaveBeenCalledWith(
         mockSlide,
-        imageResource,
+        processedImage,
         expect.objectContaining({
           x: 1,
           y: 2,
-          w: 3 // 300 / 100
-          // Not checking h value as the implementation might vary
+          w: 3, // 300 / 100
+          h: 1.8 // 180 / 100
         })
       );
     });

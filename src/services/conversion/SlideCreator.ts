@@ -1,6 +1,7 @@
 import { HTMLContent, ConversionConfig, Section, SlideElement, SlideLayout } from '../../models';
 import { SlideCreatorService, SlideCreationError } from './SlideCreatorInterface';
 import { PptxGeneratorService } from '../pptx/PptxGeneratorInterface';
+import { ImageHandlerService } from './ImageHandlerInterface';
 
 /**
  * Slide Creator Service Implementation
@@ -13,14 +14,17 @@ import { PptxGeneratorService } from '../pptx/PptxGeneratorInterface';
  */
 export class SlideCreator implements SlideCreatorService {
   private pptxGenerator: PptxGeneratorService;
+  private imageHandler: ImageHandlerService;
   
   /**
    * Constructor
    * 
    * @param pptxGenerator - The PPTX generator service
+   * @param imageHandler - The image handler service
    */
-  constructor(pptxGenerator: PptxGeneratorService) {
+  constructor(pptxGenerator: PptxGeneratorService, imageHandler: ImageHandlerService) {
     this.pptxGenerator = pptxGenerator;
+    this.imageHandler = imageHandler;
   }
   
   /**
@@ -232,40 +236,28 @@ export class SlideCreator implements SlideCreatorService {
         case 'image':
           // Only add images if includeImages is true in the configuration
           if (config.includeImages) {
-            // Apply image processing options if available
+            // Prepare image options for positioning
             const imageOptions = {
               ...positions.image,
               ...element.style
             };
             
-            // Apply image processing options from config if available
-            if (config.imageOptions) {
-              if (config.imageOptions.maxWidth) {
-                imageOptions.w = Math.min(
-                  element.content.width / 100, 
-                  config.imageOptions.maxWidth / 100
-                );
-              }
+            try {
+              // Process the image with the image handler
+              const processedImage = await this.imageHandler.processImage(element.content, config.imageOptions);
               
-              if (config.imageOptions.maxHeight) {
-                imageOptions.h = Math.min(
-                  element.content.height / 100, 
-                  config.imageOptions.maxHeight / 100
-                );
-              }
+              // Update the image options with the processed dimensions
+              imageOptions.w = processedImage.width / 100; // Convert pixels to inches
+              imageOptions.h = processedImage.height / 100; // Convert pixels to inches
               
-              // Preserve aspect ratio if specified
-              if (config.imageOptions.preserveAspectRatio) {
-                const aspectRatio = element.content.width / element.content.height;
-                if (imageOptions.w && !imageOptions.h) {
-                  imageOptions.h = imageOptions.w / aspectRatio;
-                } else if (imageOptions.h && !imageOptions.w) {
-                  imageOptions.w = imageOptions.h * aspectRatio;
-                }
-              }
+              // Add the processed image to the slide
+              this.pptxGenerator.addImageElement(slide, processedImage, imageOptions);
+            } catch (error) {
+              console.warn(`Failed to process image: ${error instanceof Error ? error.message : String(error)}`);
+              
+              // Fallback to original image if processing fails
+              this.pptxGenerator.addImageElement(slide, element.content, imageOptions);
             }
-            
-            this.pptxGenerator.addImageElement(slide, element.content, imageOptions);
           }
           break;
           
