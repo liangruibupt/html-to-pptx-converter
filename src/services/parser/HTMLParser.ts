@@ -58,7 +58,7 @@ export class HTMLParser implements HTMLParserService {
       const tables = this.extractTables(doc);
       const lists = this.extractLists(doc);
       const texts = this.extractFormattedText(doc);
-      const links = [] as LinkResource[]; // Will be implemented in task 4.5
+      const links = this.extractLinks(doc);
       
       // Extract sections based on the specified strategy
       const sections = this.extractSections(doc, splitStrategy, customSelector);
@@ -73,13 +73,15 @@ export class HTMLParser implements HTMLParserService {
         const sectionTables = this.extractTables(sectionDoc);
         const sectionLists = this.extractLists(sectionDoc);
         const sectionTexts = this.extractFormattedText(sectionDoc);
+        const sectionLinks = this.extractLinks(sectionDoc);
         
         // Add elements to the section
         section.elements = [
           ...sectionImages.map(img => ({ type: 'image' as const, content: img })),
           ...sectionTables.map(table => ({ type: 'table' as const, content: table })),
           ...sectionLists.map(list => ({ type: 'list' as const, content: list })),
-          ...sectionTexts.map(text => ({ type: 'text' as const, content: text }))
+          ...sectionTexts.map(text => ({ type: 'text' as const, content: text })),
+          ...sectionLinks.map(link => ({ type: 'link' as const, content: link }))
         ];
       });
       
@@ -586,6 +588,37 @@ export class HTMLParser implements HTMLParserService {
     });
     
     return textResources;
+  }
+  
+  /**
+   * Extract hyperlinks from HTML document
+   * 
+   * @param doc - HTML document to extract hyperlinks from
+   * @returns Array of extracted link resources
+   */
+  extractLinks(doc: Document): LinkResource[] {
+    const links: LinkResource[] = [];
+    const linkElements = doc.querySelectorAll('a[href]');
+    
+    linkElements.forEach((link) => {
+      const href = link.getAttribute('href') || '';
+      const text = link.textContent?.trim() || '';
+      
+      // Skip links without href or text
+      if (!href || !text) {
+        return;
+      }
+      
+      // Create link resource
+      const linkResource: LinkResource = {
+        text,
+        href
+      };
+      
+      links.push(linkResource);
+    });
+    
+    return links;
   }
   
   /**

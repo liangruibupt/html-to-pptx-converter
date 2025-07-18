@@ -109,6 +109,7 @@ export interface TextResource {
     fontFamily?: string;
     headingLevel?: number;
     alignment?: 'left' | 'center' | 'right' | 'justify';
+    hasNestedFormatting?: boolean;
   };
 }
 
