@@ -3,6 +3,7 @@ import { SlideCreatorService, SlideCreationError } from './SlideCreatorInterface
 import { PptxGeneratorService } from '../pptx/PptxGeneratorInterface';
 import { ImageHandlerService } from './ImageHandlerInterface';
 import { TableHandlerService } from './TableHandlerInterface';
+import { ListHandlerService } from './ListHandlerInterface';
 
 /**
  * Slide Creator Service Implementation
@@ -17,6 +18,7 @@ export class SlideCreator implements SlideCreatorService {
   private pptxGenerator: PptxGeneratorService;
   private imageHandler: ImageHandlerService;
   private tableHandler: TableHandlerService;
+  private listHandler: ListHandlerService;
   
   /**
    * Constructor
@@ -24,15 +26,18 @@ export class SlideCreator implements SlideCreatorService {
    * @param pptxGenerator - The PPTX generator service
    * @param imageHandler - The image handler service
    * @param tableHandler - The table handler service
+   * @param listHandler - The list handler service
    */
   constructor(
     pptxGenerator: PptxGeneratorService, 
     imageHandler: ImageHandlerService,
-    tableHandler: TableHandlerService
+    tableHandler: TableHandlerService,
+    listHandler: ListHandlerService
   ) {
     this.pptxGenerator = pptxGenerator;
     this.imageHandler = imageHandler;
     this.tableHandler = tableHandler;
+    this.listHandler = listHandler;
   }
   
   /**
@@ -316,11 +321,49 @@ export class SlideCreator implements SlideCreatorService {
           break;
           
         case 'list':
-          this.pptxGenerator.addListElement(
-            slide, 
-            element.content, 
-            { ...positions.list, ...element.style }
-          );
+          try {
+            // Process the list with the list handler
+            const processedList = this.listHandler.processList(element.content);
+            
+            // Get list styling options
+            const listOptions = this.listHandler.applyListStyling(processedList);
+            
+            // Merge with position options
+            const mergedOptions = {
+              ...positions.list,
+              ...listOptions,
+              ...element.style
+            };
+            
+            // Format list items
+            const formattedItems = this.listHandler.formatListItems(
+              processedList.items,
+              processedList.ordered
+            );
+            
+            // Handle nested lists if present
+            const processedItems = this.listHandler.handleNestedLists(formattedItems);
+            
+            // Add the list to the slide with the processed data and options
+            this.pptxGenerator.addListElement(
+              slide, 
+              {
+                ...processedList,
+                items: processedItems,
+                _formattedItems: processedItems // Add formatted items for PptxGenerator
+              }, 
+              mergedOptions
+            );
+          } catch (error) {
+            console.warn(`Failed to process list: ${error instanceof Error ? error.message : String(error)}`);
+            
+            // Fallback to original list if processing fails
+            this.pptxGenerator.addListElement(
+              slide, 
+              element.content, 
+              { ...positions.list, ...element.style }
+            );
+          }
           break;
           
         case 'link':

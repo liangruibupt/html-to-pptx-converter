@@ -3,6 +3,7 @@ import { SlideCreator } from '../../src/services/conversion/SlideCreator';
 import { SlideCreationError } from '../../src/services/conversion/SlideCreatorInterface';
 import { ImageHandlerService } from '../../src/services/conversion/ImageHandlerInterface';
 import { TableHandlerService } from '../../src/services/conversion/TableHandlerInterface';
+import { ListHandlerService } from '../../src/services/conversion/ListHandlerInterface';
 import { 
   HTMLContent, 
   ConversionConfig, 
@@ -57,6 +58,25 @@ const mockTableHandler: TableHandlerService = {
     w: '90%',
     colW: [1, 1],
     border: { pt: 1, color: '666666' }
+  }))
+};
+
+// Mock ListHandlerService
+const mockListHandler: ListHandlerService = {
+  processList: vi.fn().mockImplementation((list) => list),
+  formatListItems: vi.fn().mockImplementation((items) => items),
+  handleNestedLists: vi.fn().mockImplementation((items) => items),
+  determineBulletType: vi.fn().mockImplementation((list) => 
+    list.ordered ? { type: 'number' } : { type: 'bullet', code: '•' }
+  ),
+  applyListStyling: vi.fn().mockImplementation(() => ({
+    x: 0.5,
+    y: 2,
+    w: '90%',
+    fontSize: 18,
+    fontFace: 'Arial',
+    color: '333333',
+    bullet: { type: 'bullet', code: '•' }
   }))
 };
 
@@ -126,7 +146,7 @@ describe('SlideCreator', () => {
     mockPptxGenerator.addSlide.mockReturnValue(mockSlide);
     
     // Create SlideCreator instance with mock services
-    slideCreator = new SlideCreator(mockPptxGenerator, mockImageHandler, mockTableHandler);
+    slideCreator = new SlideCreator(mockPptxGenerator, mockImageHandler, mockTableHandler, mockListHandler);
   });
   
   describe('createSlides', () => {
@@ -387,12 +407,31 @@ describe('SlideCreator', () => {
         }
       ];
       
+      // Mock the formatted items
+      const formattedItems = ['Item 1', 'Item 2', 'Item 3'];
+      
+      mockListHandler.formatListItems.mockReturnValueOnce(formattedItems);
+      mockListHandler.handleNestedLists.mockReturnValueOnce(formattedItems);
+      
       await slideCreator.createSlideFromSection(mockPresentation, section, sampleConfig);
+      
+      expect(mockListHandler.processList).toHaveBeenCalledWith(listResource);
+      expect(mockListHandler.formatListItems).toHaveBeenCalled();
+      expect(mockListHandler.handleNestedLists).toHaveBeenCalled();
+      expect(mockListHandler.applyListStyling).toHaveBeenCalled();
       
       expect(mockPptxGenerator.addListElement).toHaveBeenCalledWith(
         mockSlide,
-        listResource,
-        expect.objectContaining({ x: 0.5, y: 2, w: '90%' })
+        expect.objectContaining({
+          items: formattedItems,
+          ordered: false,
+          _formattedItems: formattedItems
+        }),
+        expect.objectContaining({
+          x: 0.5,
+          y: 2,
+          w: '90%'
+        })
       );
     });
     

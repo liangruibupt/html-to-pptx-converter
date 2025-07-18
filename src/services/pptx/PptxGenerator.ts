@@ -364,33 +364,50 @@ export class PptxGenerator implements PptxGeneratorService {
    */
   addListElement(slide: any, list: ListResource, options?: any): void {
     try {
-      // Prepare list items
-      const listItems = list.items.map(item => {
-        // Strip HTML tags from list items
-        return this.stripHtmlTags(item);
-      });
+      // Check if the list has pre-formatted items
+      let listItems;
       
-      // Determine bullet type based on list style
-      let bullet: any = { type: 'bullet', code: '•' };
-      if (list.ordered) {
-        bullet = { type: 'number' };
+      if ('_formattedItems' in list) {
+        // Use pre-formatted items if available
+        listItems = list._formattedItems;
+      } else {
+        // Prepare list items
+        listItems = list.items.map(item => {
+          // Strip HTML tags from list items
+          return this.stripHtmlTags(item);
+        });
+      }
+      
+      // Determine bullet type based on list style or options
+      let bullet: any;
+      
+      if (options?.bullet) {
+        // Use bullet configuration from options if available
+        bullet = options.bullet;
+      } else {
+        // Default bullet configuration
+        bullet = { type: 'bullet', code: '•' };
         
-        // Handle different list types (A, B, C or 1, 2, 3)
-        if (list.style?.type) {
-          if (list.style.type === 'A') {
-            bullet.numberType = 'upperLetter';
-          } else if (list.style.type === 'a') {
-            bullet.numberType = 'lowerLetter';
-          } else if (list.style.type === 'I') {
-            bullet.numberType = 'upperRoman';
-          } else if (list.style.type === 'i') {
-            bullet.numberType = 'lowerRoman';
+        if (list.ordered) {
+          bullet = { type: 'number' };
+          
+          // Handle different list types (A, B, C or 1, 2, 3)
+          if (list.style?.type) {
+            if (list.style.type === 'A') {
+              bullet.numberType = 'upperLetter';
+            } else if (list.style.type === 'a') {
+              bullet.numberType = 'lowerLetter';
+            } else if (list.style.type === 'I') {
+              bullet.numberType = 'upperRoman';
+            } else if (list.style.type === 'i') {
+              bullet.numberType = 'lowerRoman';
+            }
           }
-        }
-        
-        // Handle start attribute
-        if (list.style?.start && list.style.start !== '1') {
-          bullet.startAt = parseInt(list.style.start, 10);
+          
+          // Handle start attribute
+          if (list.style?.start && list.style.start !== '1') {
+            bullet.startAt = parseInt(list.style.start, 10);
+          }
         }
       }
       
@@ -400,9 +417,9 @@ export class PptxGenerator implements PptxGeneratorService {
         y: options?.y || 2,
         w: options?.w || '90%',
         h: options?.h || 2,
-        fontSize: 18,
-        fontFace: list.style?.fontFamily || 'Arial',
-        color: list.style?.color || '333333',
+        fontSize: options?.fontSize || 18,
+        fontFace: options?.fontFace || list.style?.fontFamily || 'Arial',
+        color: options?.color || list.style?.color || '333333',
         bullet: bullet,
         ...options
       };
