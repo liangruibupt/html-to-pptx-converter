@@ -1,0 +1,14 @@
+{
+  "name": "Auto Task Commit",
+  "description": "Automatically commits code changes when a task is completed",
+  "trigger": {
+    "type": "taskStatusChange",
+    "condition": {
+      "status": "completed"
+    }
+  },
+  "action": {
+    "type": "agent",
+    "prompt": "A task has been completed. Please commit the changes with a descriptive message following the format 'Task #X: Brief description of what was done'. The task that was completed is: {{task}}. Follow these steps:\n\n1. Check what files have been modified using 'git status'\n2. Stage all changes using 'git add .'\n3. Create a commit message in the format 'Task #X: Brief description of what was done' where X is the task number\n4. Commit the changes using 'git commit -m \"your message\"'\n5. Push the changes to GitHub using 'git push'\n\nMake sure to follow the project's code style and organization as described in the workflow.md file."
+  }
+}

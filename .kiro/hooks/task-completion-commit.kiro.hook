@@ -1,0 +1,20 @@
+{
+  "enabled": true,
+  "name": "Task Completion Commit",
+  "description": "Detects when code changes are made and prompts to commit them when a task is completed",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "src/**/*.ts",
+      "src/**/*.tsx",
+      "src/**/*.css",
+      "tests/**/*.ts",
+      "tests/**/*.tsx"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "I notice you've made changes to the codebase. If you've completed a task:\n\n1. What task number did you complete?\n2. Provide a brief description of what was done\n3. Would you like me to help you commit these changes?\n\nI'll prepare a commit message following the format: \"Task #X: Brief description of what was done\""
+  }
+}

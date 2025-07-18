@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "name": "Update Documentation",
+  "description": "Monitors changes to source files and prompts to update documentation in README.md or docs folder",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "src/**/*.ts",
+      "src/**/*.css",
+      "*.ts",
+      "*.json"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "I noticed changes to source files in the HTML to PPTX Converter project. Please review these changes and update the documentation accordingly:\n\n1. If the changes affect user-facing features, update the README.md with relevant information\n2. If the changes modify component behavior or API, ensure documentation reflects these changes\n3. Consider if any new documentation should be added to explain the modified functionality\n4. Ensure documentation follows the project's style and organization\n\nPlease provide specific updates to make to the README.md or suggest new documentation files if needed."
+  }
+}
