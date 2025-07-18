@@ -308,25 +308,33 @@ export class PptxGenerator implements PptxGeneratorService {
    */
   addTableElement(slide: any, table: TableResource, options?: any): void {
     try {
-      // Prepare table data
-      const tableData = [];
+      // Check if the table has pre-formatted data
+      let tableData;
       
-      // Add headers if present
-      if (table.headers && table.headers.length > 0) {
-        tableData.push(table.headers.map(header => ({
-          text: header,
-          bold: true,
-          color: '333333',
-          fill: 'EEEEEE'
-        })));
+      if ('_formattedData' in table) {
+        // Use pre-formatted data if available
+        tableData = table._formattedData;
+      } else {
+        // Prepare table data
+        tableData = [];
+        
+        // Add headers if present
+        if (table.headers && table.headers.length > 0) {
+          tableData.push(table.headers.map(header => ({
+            text: header,
+            bold: true,
+            color: '333333',
+            fill: 'EEEEEE'
+          })));
+        }
+        
+        // Add rows
+        table.rows.forEach(row => {
+          tableData.push(row.map(cell => ({
+            text: cell
+          })));
+        });
       }
-      
-      // Add rows
-      table.rows.forEach(row => {
-        tableData.push(row.map(cell => ({
-          text: cell
-        })));
-      });
       
       // Prepare table options
       const tableOptions = {

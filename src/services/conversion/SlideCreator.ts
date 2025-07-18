@@ -2,6 +2,7 @@ import { HTMLContent, ConversionConfig, Section, SlideElement, SlideLayout } fro
 import { SlideCreatorService, SlideCreationError } from './SlideCreatorInterface';
 import { PptxGeneratorService } from '../pptx/PptxGeneratorInterface';
 import { ImageHandlerService } from './ImageHandlerInterface';
+import { TableHandlerService } from './TableHandlerInterface';
 
 /**
  * Slide Creator Service Implementation
@@ -15,16 +16,23 @@ import { ImageHandlerService } from './ImageHandlerInterface';
 export class SlideCreator implements SlideCreatorService {
   private pptxGenerator: PptxGeneratorService;
   private imageHandler: ImageHandlerService;
+  private tableHandler: TableHandlerService;
   
   /**
    * Constructor
    * 
    * @param pptxGenerator - The PPTX generator service
    * @param imageHandler - The image handler service
+   * @param tableHandler - The table handler service
    */
-  constructor(pptxGenerator: PptxGeneratorService, imageHandler: ImageHandlerService) {
+  constructor(
+    pptxGenerator: PptxGeneratorService, 
+    imageHandler: ImageHandlerService,
+    tableHandler: TableHandlerService
+  ) {
     this.pptxGenerator = pptxGenerator;
     this.imageHandler = imageHandler;
+    this.tableHandler = tableHandler;
   }
   
   /**
@@ -262,11 +270,49 @@ export class SlideCreator implements SlideCreatorService {
           break;
           
         case 'table':
-          this.pptxGenerator.addTableElement(
-            slide, 
-            element.content, 
-            { ...positions.table, ...element.style }
-          );
+          try {
+            // Process the table with the table handler
+            const processedTable = this.tableHandler.processTable(element.content);
+            
+            // Get table styling options
+            const tableOptions = this.tableHandler.applyTableStyling(processedTable);
+            
+            // Merge with position options
+            const mergedOptions = {
+              ...positions.table,
+              ...tableOptions,
+              ...element.style
+            };
+            
+            // Format headers and rows
+            const formattedHeaders = this.tableHandler.formatHeaders(processedTable.headers);
+            const formattedRows = this.tableHandler.formatRows(processedTable.rows);
+            
+            // Create formatted table data
+            const tableData = [
+              ...formattedHeaders.length > 0 ? [formattedHeaders] : [],
+              ...formattedRows
+            ];
+            
+            // Add the table to the slide with the processed data and options
+            this.pptxGenerator.addTableElement(
+              slide, 
+              {
+                ...processedTable,
+                _formattedData: tableData // Add formatted data for PptxGenerator
+              }, 
+              mergedOptions
+            );
+          } catch (error) {
+            console.warn(`Failed to process table: ${error instanceof Error ? error.message : String(error)}`);
+            
+            // Fallback to original table if processing fails
+            this.pptxGenerator.addTableElement(
+              slide, 
+              element.content, 
+              { ...positions.table, ...element.style }
+            );
+          }
           break;
           
         case 'list':

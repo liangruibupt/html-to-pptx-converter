@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SlideCreator } from '../../src/services/conversion/SlideCreator';
 import { SlideCreationError } from '../../src/services/conversion/SlideCreatorInterface';
 import { ImageHandlerService } from '../../src/services/conversion/ImageHandlerInterface';
+import { TableHandlerService } from '../../src/services/conversion/TableHandlerInterface';
 import { 
   HTMLContent, 
   ConversionConfig, 
@@ -36,6 +37,27 @@ const mockImageHandler: ImageHandlerService = {
   convertToDataUrl: vi.fn(),
   resizeImage: vi.fn(),
   calculateOptimalDimensions: vi.fn()
+};
+
+// Mock TableHandlerService
+const mockTableHandler: TableHandlerService = {
+  processTable: vi.fn().mockImplementation((table) => table),
+  formatHeaders: vi.fn().mockImplementation((headers) => 
+    headers.map(header => ({ text: header, bold: true }))
+  ),
+  formatRows: vi.fn().mockImplementation((rows) => 
+    rows.map(row => row.map(cell => ({ text: cell })))
+  ),
+  calculateColumnWidths: vi.fn().mockImplementation((table) => 
+    Array(table.headers.length).fill(1)
+  ),
+  applyTableStyling: vi.fn().mockImplementation(() => ({
+    x: 0.5,
+    y: 2,
+    w: '90%',
+    colW: [1, 1],
+    border: { pt: 1, color: '666666' }
+  }))
 };
 
 describe('SlideCreator', () => {
@@ -104,7 +126,7 @@ describe('SlideCreator', () => {
     mockPptxGenerator.addSlide.mockReturnValue(mockSlide);
     
     // Create SlideCreator instance with mock services
-    slideCreator = new SlideCreator(mockPptxGenerator, mockImageHandler);
+    slideCreator = new SlideCreator(mockPptxGenerator, mockImageHandler, mockTableHandler);
   });
   
   describe('createSlides', () => {
@@ -310,12 +332,45 @@ describe('SlideCreator', () => {
         }
       ];
       
+      // Mock the formatted data
+      const formattedHeaders = [
+        { text: 'Header 1', bold: true },
+        { text: 'Header 2', bold: true }
+      ];
+      
+      const formattedRows = [
+        [{ text: 'Row 1, Cell 1' }, { text: 'Row 1, Cell 2' }],
+        [{ text: 'Row 2, Cell 1' }, { text: 'Row 2, Cell 2' }]
+      ];
+      
+      mockTableHandler.formatHeaders.mockReturnValueOnce(formattedHeaders);
+      mockTableHandler.formatRows.mockReturnValueOnce(formattedRows);
+      
       await slideCreator.createSlideFromSection(mockPresentation, section, sampleConfig);
+      
+      expect(mockTableHandler.processTable).toHaveBeenCalledWith(tableResource);
+      expect(mockTableHandler.formatHeaders).toHaveBeenCalled();
+      expect(mockTableHandler.formatRows).toHaveBeenCalled();
+      expect(mockTableHandler.applyTableStyling).toHaveBeenCalled();
       
       expect(mockPptxGenerator.addTableElement).toHaveBeenCalledWith(
         mockSlide,
-        tableResource,
-        expect.objectContaining({ x: 0.5, y: 2, w: '90%' })
+        expect.objectContaining({
+          headers: ['Header 1', 'Header 2'],
+          rows: [
+            ['Row 1, Cell 1', 'Row 1, Cell 2'],
+            ['Row 2, Cell 1', 'Row 2, Cell 2']
+          ],
+          _formattedData: expect.arrayContaining([
+            formattedHeaders,
+            ...formattedRows
+          ])
+        }),
+        expect.objectContaining({
+          x: 0.5,
+          y: 2,
+          w: '90%'
+        })
       );
     });
     
