@@ -1,4 +1,4 @@
-import { HTMLContent, Section, SlideElement, ImageResource, TableResource, ListResource, LinkResource, SplitStrategy } from '../../models';
+import { HTMLContent, Section, SlideElement, ImageResource, TableResource, ListResource, LinkResource, TextResource, SplitStrategy } from '../../models';
 import { HTMLParserService, HTMLParsingError } from './HTMLParserInterface';
 
 /**
@@ -57,6 +57,7 @@ export class HTMLParser implements HTMLParserService {
       const images = this.extractImages(doc);
       const tables = this.extractTables(doc);
       const lists = this.extractLists(doc);
+      const texts = this.extractFormattedText(doc);
       const links = [] as LinkResource[]; // Will be implemented in task 4.5
       
       // Extract sections based on the specified strategy
@@ -71,12 +72,14 @@ export class HTMLParser implements HTMLParserService {
         const sectionImages = this.extractImages(sectionDoc);
         const sectionTables = this.extractTables(sectionDoc);
         const sectionLists = this.extractLists(sectionDoc);
+        const sectionTexts = this.extractFormattedText(sectionDoc);
         
         // Add elements to the section
         section.elements = [
           ...sectionImages.map(img => ({ type: 'image' as const, content: img })),
           ...sectionTables.map(table => ({ type: 'table' as const, content: table })),
-          ...sectionLists.map(list => ({ type: 'list' as const, content: list }))
+          ...sectionLists.map(list => ({ type: 'list' as const, content: list })),
+          ...sectionTexts.map(text => ({ type: 'text' as const, content: text }))
         ];
       });
       
@@ -89,7 +92,8 @@ export class HTMLParser implements HTMLParserService {
           images,
           tables,
           lists,
-          links
+          links,
+          texts
         }
       };
     } catch (error) {
@@ -504,6 +508,84 @@ export class HTMLParser implements HTMLParserService {
     });
     
     return tables;
+  }
+  
+  /**
+   * Extract text elements with formatting from HTML document
+   * 
+   * @param doc - HTML document to extract formatted text from
+   * @returns Array of extracted text resources
+   */
+  extractFormattedText(doc: Document): TextResource[] {
+    const textResources: TextResource[] = [];
+    
+    // Define the elements we want to extract text from
+    // We'll focus on paragraphs, headings, and spans with formatting
+    const textElements = doc.querySelectorAll('p, h1, h2, h3, h4, h5, h6, span, div:not(:has(>*)), b, strong, i, em, u, s, strike, sup, sub');
+    
+    textElements.forEach((element) => {
+      // Skip empty elements
+      if (!element.textContent?.trim()) {
+        return;
+      }
+      
+      // Get the element's computed style
+      const style = window.getComputedStyle(element);
+      
+      // Determine heading level if applicable
+      let headingLevel: number | undefined;
+      if (element.tagName.match(/^H[1-6]$/i)) {
+        headingLevel = parseInt(element.tagName.substring(1), 10);
+      }
+      
+      // Determine text alignment
+      let alignment: 'left' | 'center' | 'right' | 'justify' = 'left';
+      const textAlign = element.getAttribute('align') || style.textAlign;
+      if (textAlign) {
+        if (textAlign.includes('center')) alignment = 'center';
+        else if (textAlign.includes('right')) alignment = 'right';
+        else if (textAlign.includes('justify')) alignment = 'justify';
+      }
+      
+      // Create the text resource
+      const textResource: TextResource = {
+        content: element.innerHTML, // Use innerHTML to preserve internal formatting
+        format: {
+          // Check for direct formatting tags
+          bold: element.tagName === 'B' || element.tagName === 'STRONG' || 
+                style.fontWeight === 'bold' || parseInt(style.fontWeight, 10) >= 700 ||
+                !!element.closest('b, strong'),
+          italic: element.tagName === 'I' || element.tagName === 'EM' || 
+                 style.fontStyle === 'italic' ||
+                 !!element.closest('i, em'),
+          underline: element.tagName === 'U' || style.textDecoration.includes('underline') ||
+                    !!element.closest('u'),
+          strikethrough: element.tagName === 'S' || element.tagName === 'STRIKE' || 
+                        style.textDecoration.includes('line-through') ||
+                        !!element.closest('s, strike'),
+          superscript: element.tagName === 'SUP' || !!element.closest('sup'),
+          subscript: element.tagName === 'SUB' || !!element.closest('sub'),
+          
+          // Extract style information
+          color: style.color,
+          backgroundColor: style.backgroundColor !== 'rgba(0, 0, 0, 0)' ? style.backgroundColor : undefined,
+          fontSize: style.fontSize,
+          fontFamily: style.fontFamily,
+          headingLevel,
+          alignment
+        }
+      };
+      
+      // Check for nested formatting elements
+      const hasNestedFormatting = element.querySelector('b, strong, i, em, u, s, strike, sup, sub');
+      if (hasNestedFormatting) {
+        textResource.format.hasNestedFormatting = true;
+      }
+      
+      textResources.push(textResource);
+    });
+    
+    return textResources;
   }
   
   /**

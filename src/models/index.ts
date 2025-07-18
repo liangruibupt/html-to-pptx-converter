@@ -94,6 +94,24 @@ export interface LinkResource {
   href: string;
 }
 
+export interface TextResource {
+  content: string;
+  format: {
+    bold?: boolean;
+    italic?: boolean;
+    underline?: boolean;
+    strikethrough?: boolean;
+    superscript?: boolean;
+    subscript?: boolean;
+    color?: string;
+    backgroundColor?: string;
+    fontSize?: string;
+    fontFamily?: string;
+    headingLevel?: number;
+    alignment?: 'left' | 'center' | 'right' | 'justify';
+  };
+}
+
 // HTML Content Model
 export interface HTMLContent {
   raw: string;
@@ -104,6 +122,7 @@ export interface HTMLContent {
     tables: TableResource[];
     lists: ListResource[];
     links: LinkResource[];
+    texts: TextResource[];
   };
 }
 
