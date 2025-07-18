@@ -306,24 +306,6 @@ export class SlideCreator implements SlideCreatorService {
     }
   }
   
-  /**
-   * Calculate optimal element positioning on a slide
-   * 
-   * This method calculates the optimal position for elements on a slide
-   * based on the existing elements and the slide layout.
-   * 
-   * @param slide - The slide to calculate positions for
-   * @param elementType - The type of element to position
-   * @param layout - The slide layout
-   * @returns Position object with x, y, w, h properties
-   */
-  private calculateElementPosition(slide: any, elementType: string, layout: SlideLayout): Record<string, any> {
-    // Get default positions for the layout
-    const defaultPositions = this.getLayoutPositions(layout);
-    
-    // For now, return the default positions
-    // In a more advanced implementation, this could analyze the slide content
-    // and calculate optimal positions based on existing elements
-    return defaultPositions[elementType] || defaultPositions.text;
-  }
+  // Note: The calculateElementPosition method has been removed as it was unused.
+  // It could be implemented in the future for more advanced slide layout functionality.
 }
