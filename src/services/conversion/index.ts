@@ -10,3 +10,5 @@ export { ListHandler } from './ListHandler';
 export { ListHandlerService, ListHandlingError } from './ListHandlerInterface';
 export { LinkHandler } from './LinkHandler';
 export { LinkHandlerService, LinkHandlingError } from './LinkHandlerInterface';
+export { ThemeHandler } from './ThemeHandler';
+export { ThemeHandlerService, ThemeHandlingError } from './ThemeHandlerInterface';

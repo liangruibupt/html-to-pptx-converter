@@ -33,7 +33,7 @@ export class PptxGenerator implements PptxGeneratorService {
   /**
    * Create a new presentation
    * 
-   * @param theme - Theme to apply to the presentation
+   * @param theme - Theme to apply to the presentation (deprecated, use ThemeHandler.applyTheme instead)
    * @returns The created presentation instance
    */
   createPresentation(theme?: PresentationTheme): any {
@@ -47,8 +47,9 @@ export class PptxGenerator implements PptxGeneratorService {
       pres.company = 'HTML to PPTX Converter';
       pres.subject = 'Generated from HTML content';
       
-      // Apply theme if specified
+      // Apply theme if specified (deprecated, use ThemeHandler.applyTheme instead)
       if (theme) {
+        console.warn('Passing theme to createPresentation is deprecated. Use ThemeHandler.applyTheme instead.');
         this.applyTheme(pres, theme);
       }
       
@@ -65,9 +66,12 @@ export class PptxGenerator implements PptxGeneratorService {
    * 
    * @param presentation - The presentation instance
    * @param theme - Theme to apply
+   * @deprecated Use ThemeHandler.applyTheme instead
    */
   applyTheme(presentation: any, theme: PresentationTheme): void {
     try {
+      console.warn('PptxGenerator.applyTheme is deprecated. Use ThemeHandler.applyTheme instead.');
+      
       // Define theme properties based on the selected theme
       switch (theme) {
         case PresentationTheme.PROFESSIONAL:

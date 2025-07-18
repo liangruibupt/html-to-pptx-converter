@@ -5,6 +5,7 @@ import { ImageHandlerService } from '../../src/services/conversion/ImageHandlerI
 import { TableHandlerService } from '../../src/services/conversion/TableHandlerInterface';
 import { ListHandlerService } from '../../src/services/conversion/ListHandlerInterface';
 import { LinkHandlerService } from '../../src/services/conversion/LinkHandlerInterface';
+import { ThemeHandlerService } from '../../src/services/conversion/ThemeHandlerInterface';
 import { 
   HTMLContent, 
   ConversionConfig, 
@@ -97,6 +98,28 @@ const mockLinkHandler: LinkHandlerService = {
   }))
 };
 
+// Mock ThemeHandlerService
+const mockThemeHandler: ThemeHandlerService = {
+  applyTheme: vi.fn(),
+  getThemeProperties: vi.fn().mockImplementation((theme) => ({
+    title: theme,
+    headingColor: '0F3C5F',
+    bodyColor: '333333',
+    backgroundColor: 'FFFFFF'
+  })),
+  getThemeColorPalette: vi.fn().mockImplementation((theme) => ({
+    heading: '0F3C5F',
+    subheading: '2E75B6',
+    body: '333333',
+    background: 'FFFFFF'
+  })),
+  getThemeFontSet: vi.fn().mockImplementation((theme) => ({
+    heading: 'Arial',
+    body: 'Arial',
+    accent: 'Arial'
+  }))
+};
+
 describe('SlideCreator', () => {
   let slideCreator: SlideCreator;
   let mockPresentation: any;
@@ -163,7 +186,7 @@ describe('SlideCreator', () => {
     mockPptxGenerator.addSlide.mockReturnValue(mockSlide);
     
     // Create SlideCreator instance with mock services
-    slideCreator = new SlideCreator(mockPptxGenerator, mockImageHandler, mockTableHandler, mockListHandler, mockLinkHandler);
+    slideCreator = new SlideCreator(mockPptxGenerator, mockImageHandler, mockTableHandler, mockListHandler, mockLinkHandler, mockThemeHandler);
   });
   
   describe('createSlides', () => {
@@ -171,7 +194,8 @@ describe('SlideCreator', () => {
       await slideCreator.createSlides(sampleHtmlContent, sampleConfig);
       
       expect(mockPptxGenerator.initialize).toHaveBeenCalled();
-      expect(mockPptxGenerator.createPresentation).toHaveBeenCalledWith(PresentationTheme.PROFESSIONAL);
+      expect(mockPptxGenerator.createPresentation).toHaveBeenCalled();
+      expect(mockThemeHandler.applyTheme).toHaveBeenCalledWith(mockPresentation, PresentationTheme.PROFESSIONAL);
     });
     
     it('should create slides from sections', async () => {

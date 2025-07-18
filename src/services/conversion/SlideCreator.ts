@@ -5,6 +5,7 @@ import { ImageHandlerService } from './ImageHandlerInterface';
 import { TableHandlerService } from './TableHandlerInterface';
 import { ListHandlerService } from './ListHandlerInterface';
 import { LinkHandlerService } from './LinkHandlerInterface';
+import { ThemeHandlerService } from './ThemeHandlerInterface';
 
 /**
  * Slide Creator Service Implementation
@@ -21,6 +22,7 @@ export class SlideCreator implements SlideCreatorService {
   private tableHandler: TableHandlerService;
   private listHandler: ListHandlerService;
   private linkHandler: LinkHandlerService;
+  private themeHandler: ThemeHandlerService;
   
   /**
    * Constructor
@@ -30,19 +32,22 @@ export class SlideCreator implements SlideCreatorService {
    * @param tableHandler - The table handler service
    * @param listHandler - The list handler service
    * @param linkHandler - The link handler service
+   * @param themeHandler - The theme handler service
    */
   constructor(
     pptxGenerator: PptxGeneratorService, 
     imageHandler: ImageHandlerService,
     tableHandler: TableHandlerService,
     listHandler: ListHandlerService,
-    linkHandler: LinkHandlerService
+    linkHandler: LinkHandlerService,
+    themeHandler: ThemeHandlerService
   ) {
     this.pptxGenerator = pptxGenerator;
     this.imageHandler = imageHandler;
     this.tableHandler = tableHandler;
     this.listHandler = listHandler;
     this.linkHandler = linkHandler;
+    this.themeHandler = themeHandler;
   }
   
   /**
@@ -57,8 +62,11 @@ export class SlideCreator implements SlideCreatorService {
       // Initialize the PPTX generator
       await this.pptxGenerator.initialize();
       
-      // Create a new presentation with the specified theme
-      const presentation = this.pptxGenerator.createPresentation(config.theme);
+      // Create a new presentation
+      const presentation = this.pptxGenerator.createPresentation();
+      
+      // Apply the specified theme
+      this.themeHandler.applyTheme(presentation, config.theme);
       
       // If there are no sections, create a single slide with the entire content
       if (!htmlContent.sections || htmlContent.sections.length === 0) {
