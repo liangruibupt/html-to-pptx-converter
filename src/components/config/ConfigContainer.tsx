@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ConversionConfig, SlideLayout, PresentationTheme } from '../../models';
+import { ConversionConfig, SlideLayout, PresentationTheme, SplitStrategy } from '../../models';
 import SlideLayoutConfig from './SlideLayoutConfig';
 import ImageHandlingConfig from './ImageHandlingConfig';
 import ThemeSelectionConfig from './ThemeSelectionConfig';
+import SectionSplittingConfig from './SectionSplittingConfig';
 
 interface ConfigContainerProps {
   initialConfig: ConversionConfig;
@@ -48,6 +49,16 @@ const ConfigContainer: React.FC<ConfigContainerProps> = ({ initialConfig, onConf
     setConfig(updatedConfig);
     onConfigChange(updatedConfig);
   };
+  
+  const handleSectionSplittingChange = (strategy: SplitStrategy, customSelector?: string) => {
+    const updatedConfig = {
+      ...config,
+      splitSections: strategy,
+      customSectionSelector: customSelector
+    };
+    setConfig(updatedConfig);
+    onConfigChange(updatedConfig);
+  };
 
   return (
     <div className="config-container">
@@ -70,6 +81,12 @@ const ConfigContainer: React.FC<ConfigContainerProps> = ({ initialConfig, onConf
       <ThemeSelectionConfig
         initialTheme={config.theme}
         onChange={handleThemeChange}
+      />
+      
+      <SectionSplittingConfig
+        initialStrategy={config.splitSections}
+        initialCustomSelector={config.customSectionSelector}
+        onChange={handleSectionSplittingChange}
       />
       
       {/* Other configuration components will be added here */}

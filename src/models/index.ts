@@ -30,6 +30,7 @@ export interface ConversionConfig {
   imageOptions?: ImageProcessingOptions;
   theme: PresentationTheme;
   splitSections: SplitStrategy;
+  customSectionSelector?: string;
   preserveLinks: boolean;
   customStyles: Record<string, any>;
 }
