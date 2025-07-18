@@ -1,0 +1,14 @@
+{
+  "name": "Task Start Check",
+  "description": "Checks for uncommitted changes before starting a new task",
+  "trigger": {
+    "type": "taskStatusChange",
+    "condition": {
+      "status": "in_progress"
+    }
+  },
+  "action": {
+    "type": "agent",
+    "prompt": "A new task is being started: {{task}}. Before proceeding, please check if there are any uncommitted changes from previous work:\n\n1. Check the status of the repository using 'git status'\n2. If there are uncommitted changes, recommend committing them before starting the new task\n3. Provide a brief overview of what this task involves based on the task description and requirements\n\nAfter checking, proceed with implementing the task according to the requirements and design specifications."
+  }
+}

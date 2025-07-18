@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import './styles/App.css';
 import FileUpload from './components/upload/FileUpload';
+import HtmlInput from './components/upload/HtmlInput';
 
 /**
  * Main Application Container Component
@@ -60,20 +61,23 @@ const App: React.FC = () => {
   // State for HTML content and error messages
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [uploadMethod, setUploadMethod] = useState<'file' | 'direct'>('file');
 
-  // Handle file upload success
-  const handleFileAccepted = (content: string) => {
+  // Handle HTML content acceptance (from either file upload or direct input)
+  const handleContentAccepted = (content: string) => {
     setHtmlContent(content);
     setErrorMessage(null);
-    // Automatically move to the next step when a file is successfully uploaded
+    // Automatically move to the next step when content is successfully provided
     navigateToStep(1);
   };
 
-  // Handle file upload error
-  const handleUploadError = (message: string) => {
+  // Handle error (from either file upload or direct input)
+  const handleError = (message: string) => {
     setErrorMessage(message);
     setHtmlContent(null);
   };
+  
+  // We'll use the setUploadMethod directly in the buttons instead of this function
 
   // Render the appropriate content based on the active step
   const renderStepContent = () => {
@@ -84,11 +88,36 @@ const App: React.FC = () => {
             <h2>Upload HTML Content</h2>
             <p>Upload an HTML file or paste HTML code to convert it to a PowerPoint presentation.</p>
             
-            {/* File Upload Component */}
-            <FileUpload 
-              onFileAccepted={handleFileAccepted}
-              onError={handleUploadError}
-            />
+            <div className="upload-method-toggle">
+              <button 
+                className={`toggle-button ${uploadMethod === 'file' ? 'active' : ''}`}
+                onClick={() => setUploadMethod('file')}
+                aria-pressed={uploadMethod === 'file'}
+              >
+                Upload File
+              </button>
+              <button 
+                className={`toggle-button ${uploadMethod === 'direct' ? 'active' : ''}`}
+                onClick={() => setUploadMethod('direct')}
+                aria-pressed={uploadMethod === 'direct'}
+              >
+                Paste HTML
+              </button>
+            </div>
+            
+            {uploadMethod === 'file' ? (
+              /* File Upload Component */
+              <FileUpload 
+                onFileAccepted={handleContentAccepted}
+                onError={handleError}
+              />
+            ) : (
+              /* HTML Input Component */
+              <HtmlInput 
+                onContentAccepted={handleContentAccepted}
+                onError={handleError}
+              />
+            )}
             
             {/* Error message display */}
             {errorMessage && (

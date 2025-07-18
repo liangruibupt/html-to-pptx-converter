@@ -1,0 +1,11 @@
+{
+  "name": "Manual Code Commit",
+  "description": "Manually commit code changes with a descriptive message",
+  "trigger": {
+    "type": "manual"
+  },
+  "action": {
+    "type": "agent",
+    "prompt": "Please help me commit my code changes. Follow these steps:\n\n1. Check what files have been modified using 'git status'\n2. Provide a summary of the changes\n3. Ask me for a commit message or suggest one based on the changes\n4. Stage all changes using 'git add .'\n5. Commit the changes using 'git commit -m \"your message\"'\n\nMake sure to follow the project's commit message format: 'Task #X: Brief description of what was done'"
+  }
+}

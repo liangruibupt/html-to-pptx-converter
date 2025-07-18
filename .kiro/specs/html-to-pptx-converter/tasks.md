@@ -7,18 +7,18 @@
   - _Requirements: All_
 
 - [ ] 2. Create basic UI components
-  - [ ] 2.1 Create the main application container
+  - [x] 2.1 Create the main application container
     - Implement the main application layout
     - Add responsive styling for different screen sizes
     - _Requirements: 5.1, 5.3_
 
-  - [ ] 2.2 Implement file upload component
+  - [x] 2.2 Implement file upload component
     - Create drag-and-drop and file selection interface
     - Add validation for HTML files
     - Implement file size checking
     - _Requirements: 1.1, 1.2, 1.5, 1.6_
 
-  - [ ] 2.3 Implement HTML content input component
+  - [x] 2.3 Implement HTML content input component
     - Create text area for direct HTML input
     - Add validation for HTML content
     - _Requirements: 1.4, 1.5_
