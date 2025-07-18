@@ -17,9 +17,17 @@ export interface UIActions {
 }
 
 // Configuration Models
+export interface ImageProcessingOptions {
+  maxWidth?: number;
+  maxHeight?: number;
+  preserveAspectRatio: boolean;
+  quality: number;
+}
+
 export interface ConversionConfig {
   slideLayout: SlideLayout;
   includeImages: boolean;
+  imageOptions?: ImageProcessingOptions;
   theme: PresentationTheme;
   splitSections: SplitStrategy;
   preserveLinks: boolean;

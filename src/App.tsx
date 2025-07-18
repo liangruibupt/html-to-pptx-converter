@@ -3,6 +3,8 @@ import './styles/App.css';
 import FileUpload from './components/upload/FileUpload';
 import HtmlInput from './components/upload/HtmlInput';
 import HtmlPreview from './components/preview/HtmlPreview';
+import ConfigContainer from './components/config/ConfigContainer';
+import { ConversionConfig, SlideLayout, PresentationTheme, SplitStrategy } from './models';
 
 /**
  * Main Application Container Component
@@ -63,6 +65,22 @@ const App: React.FC = () => {
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [uploadMethod, setUploadMethod] = useState<'file' | 'direct'>('file');
+  
+  // Default configuration state
+  const [conversionConfig, setConversionConfig] = useState<ConversionConfig>({
+    slideLayout: SlideLayout.STANDARD,
+    includeImages: true,
+    imageOptions: {
+      preserveAspectRatio: true,
+      quality: 80,
+      maxWidth: 800,
+      maxHeight: 600
+    },
+    theme: PresentationTheme.DEFAULT,
+    splitSections: SplitStrategy.BY_H1,
+    preserveLinks: true,
+    customStyles: {}
+  });
 
   // Handle HTML content acceptance (from either file upload or direct input)
   const handleContentAccepted = (content: string) => {
@@ -139,10 +157,18 @@ const App: React.FC = () => {
             <h2>Configure Conversion Settings</h2>
             <p>Customize how your HTML content will be converted to slides.</p>
             
-            {/* Placeholder for the configuration component */}
-            <div className="placeholder-component">
-              <p>Configuration Component will be implemented here</p>
-            </div>
+            <ConfigContainer 
+              initialConfig={conversionConfig}
+              onConfigChange={setConversionConfig}
+            />
+            
+            {/* HTML Preview with updated configuration */}
+            {htmlContent && (
+              <div className="preview-container">
+                <h3>Content Preview</h3>
+                <HtmlPreview htmlContent={htmlContent} maxHeight={300} />
+              </div>
+            )}
           </section>
         );
       case 2:
