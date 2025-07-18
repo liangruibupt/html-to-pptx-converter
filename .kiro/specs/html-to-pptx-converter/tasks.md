@@ -28,28 +28,28 @@
     - Style the preview to match the application theme
     - _Requirements: 1.3_
 
-- [-] 3. Implement configuration UI
-  - [-] 3.1 Create slide layout configuration component
+- [x] 3. Implement configuration UI
+  - [x] 3.1 Create slide layout configuration component
     - Implement options for different slide layouts
     - Add visual representation of layout options
     - _Requirements: 2.1, 2.2_
 
-  - [ ] 3.2 Create image handling configuration component
+  - [x] 3.2 Create image handling configuration component
     - Add toggle for including/excluding images
     - Implement image processing options
     - _Requirements: 2.3_
 
-  - [ ] 3.3 Create theme selection component
+  - [x] 3.3 Create theme selection component
     - Implement theme selection dropdown
     - Add theme preview functionality
     - _Requirements: 2.4_
 
-  - [ ] 3.4 Create section splitting configuration component
+  - [x] 3.4 Create section splitting configuration component
     - Implement options for different splitting strategies
     - Add custom selector input for advanced users
     - _Requirements: 2.5_
 
-  - [ ] 3.5 Implement default configuration settings
+  - [-] 3.5 Implement default configuration settings
     - Create sensible defaults for all configuration options
     - Add reset to defaults functionality
     - _Requirements: 2.6_

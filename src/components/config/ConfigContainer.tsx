@@ -4,6 +4,7 @@ import SlideLayoutConfig from './SlideLayoutConfig';
 import ImageHandlingConfig from './ImageHandlingConfig';
 import ThemeSelectionConfig from './ThemeSelectionConfig';
 import SectionSplittingConfig from './SectionSplittingConfig';
+import { defaultConfig, resetToDefaults } from '../../utils/defaultConfig';
 
 interface ConfigContainerProps {
   initialConfig: ConversionConfig;
