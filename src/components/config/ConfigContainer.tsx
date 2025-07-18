@@ -5,6 +5,51 @@ import ImageHandlingConfig from './ImageHandlingConfig';
 import ThemeSelectionConfig from './ThemeSelectionConfig';
 import SectionSplittingConfig from './SectionSplittingConfig';
 import { defaultConfig, resetToDefaults } from '../../utils/defaultConfig';
+import './ConfigContainer.css';
+
+// Helper functions to format configuration values for display
+const formatSlideLayout = (layout: SlideLayout): string => {
+  switch (layout) {
+    case SlideLayout.STANDARD:
+      return 'Standard (4:3)';
+    case SlideLayout.WIDE:
+      return 'Widescreen (16:9)';
+    case SlideLayout.CUSTOM:
+      return 'Custom';
+    default:
+      return String(layout);
+  }
+};
+
+const formatTheme = (theme: PresentationTheme): string => {
+  switch (theme) {
+    case PresentationTheme.DEFAULT:
+      return 'Default';
+    case PresentationTheme.PROFESSIONAL:
+      return 'Professional';
+    case PresentationTheme.CREATIVE:
+      return 'Creative';
+    case PresentationTheme.MINIMAL:
+      return 'Minimal';
+    default:
+      return String(theme);
+  }
+};
+
+const formatSplitStrategy = (strategy: SplitStrategy): string => {
+  switch (strategy) {
+    case SplitStrategy.BY_H1:
+      return 'By H1 Headings';
+    case SplitStrategy.BY_H2:
+      return 'By H2 Headings';
+    case SplitStrategy.BY_CUSTOM_SELECTOR:
+      return 'Custom Selector';
+    case SplitStrategy.NO_SPLIT:
+      return 'No Split (Single Slide)';
+    default:
+      return String(strategy);
+  }
+};
 
 interface ConfigContainerProps {
   initialConfig: ConversionConfig;
@@ -61,8 +106,25 @@ const ConfigContainer: React.FC<ConfigContainerProps> = ({ initialConfig, onConf
     onConfigChange(updatedConfig);
   };
 
+  const handleResetToDefaults = () => {
+    const resetConfig = resetToDefaults();
+    setConfig(resetConfig);
+    onConfigChange(resetConfig);
+  };
+
   return (
     <div className="config-container">
+      <div className="config-header">
+        <h2>Configuration Settings</h2>
+        <button 
+          className="reset-button"
+          onClick={handleResetToDefaults}
+          aria-label="Reset to default configuration settings"
+        >
+          Reset to Defaults
+        </button>
+      </div>
+      
       <SlideLayoutConfig 
         initialLayout={config.slideLayout}
         onChange={handleSlideLayoutChange}
@@ -71,8 +133,8 @@ const ConfigContainer: React.FC<ConfigContainerProps> = ({ initialConfig, onConf
       <ImageHandlingConfig
         initialIncludeImages={config.includeImages}
         initialOptions={{
-          preserveAspectRatio: true,
-          quality: 80,
+          preserveAspectRatio: config.imageOptions?.preserveAspectRatio || true,
+          quality: config.imageOptions?.quality || 80,
           maxWidth: config.imageOptions?.maxWidth,
           maxHeight: config.imageOptions?.maxHeight
         }}
@@ -90,7 +152,23 @@ const ConfigContainer: React.FC<ConfigContainerProps> = ({ initialConfig, onConf
         onChange={handleSectionSplittingChange}
       />
       
-      {/* Other configuration components will be added here */}
+      <div className="config-summary">
+        <h3>Current Configuration</h3>
+        <p className="config-description">
+          Your presentation will use the following settings:
+        </p>
+        <ul className="config-list">
+          <li><strong>Slide Layout:</strong> {formatSlideLayout(config.slideLayout)}</li>
+          <li><strong>Theme:</strong> {formatTheme(config.theme)}</li>
+          <li><strong>Section Splitting:</strong> {formatSplitStrategy(config.splitSections)}</li>
+          <li><strong>Images:</strong> {config.includeImages ? 'Included' : 'Excluded'}</li>
+          {config.includeImages && config.imageOptions && (
+            <li className="nested-item">
+              <strong>Image Quality:</strong> {config.imageOptions.quality}%
+            </li>
+          )}
+        </ul>
+      </div>
     </div>
   );
 };
