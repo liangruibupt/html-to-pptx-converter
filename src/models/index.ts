@@ -74,6 +74,7 @@ export interface ImageResource {
   width: number;
   height: number;
   dataUrl?: string;
+  style?: Record<string, any>;
 }
 
 export interface TableResource {
