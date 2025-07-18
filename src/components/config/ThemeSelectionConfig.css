@@ -1,0 +1,183 @@
+.theme-selection-config {
+  margin-bottom: 2rem;
+}
+
+.theme-selection-config h3 {
+  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.config-description {
+  margin-bottom: 1rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.theme-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.theme-option {
+  width: 220px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: #f9f9f9;
+}
+
+.theme-option:hover {
+  border-color: #c0c0c0;
+  background-color: #f0f0f0;
+}
+
+.theme-option.selected {
+  border-color: #4a90e2;
+  background-color: #f0f7ff;
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.2);
+}
+
+.theme-preview {
+  height: 130px;
+  border: 1px solid #ddd;
+  margin-bottom: 0.8rem;
+  background-color: white;
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.theme-preview-header {
+  height: 8px;
+  background-color: #ddd;
+  margin-bottom: 0.8rem;
+  width: 100%;
+}
+
+.theme-preview-title {
+  height: 12px;
+  margin-bottom: 1rem;
+  width: 70%;
+}
+
+.theme-preview-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.theme-preview-text {
+  height: 8px;
+  width: 100%;
+}
+
+.theme-preview-text.short {
+  width: 60%;
+}
+
+/* Default theme */
+.default-theme .theme-preview-title {
+  background-color: #333;
+}
+
+.default-theme .theme-preview-text {
+  background-color: #666;
+}
+
+/* Professional theme */
+.professional-theme {
+  background-color: #f8f9fa;
+}
+
+.professional-theme .theme-preview-header {
+  background-color: #0062cc;
+}
+
+.professional-theme .theme-preview-title {
+  background-color: #0062cc;
+}
+
+.professional-theme .theme-preview-text {
+  background-color: #495057;
+}
+
+/* Creative theme */
+.creative-theme {
+  background-color: #f8f0fc;
+}
+
+.creative-theme .theme-preview-header {
+  background-color: #e64980;
+}
+
+.creative-theme .theme-preview-title {
+  background-color: #e64980;
+}
+
+.creative-theme .theme-preview-text {
+  background-color: #862e9c;
+}
+
+/* Minimal theme */
+.minimal-theme {
+  background-color: #ffffff;
+}
+
+.minimal-theme .theme-preview-header {
+  background-color: #212529;
+}
+
+.minimal-theme .theme-preview-title {
+  background-color: #212529;
+}
+
+.minimal-theme .theme-preview-text {
+  background-color: #adb5bd;
+}
+
+.theme-label {
+  display: flex;
+  flex-direction: column;
+}
+
+.theme-name {
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+
+.theme-description {
+  font-size: 0.8rem;
+  color: #666;
+  line-height: 1.3;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .theme-options {
+    justify-content: center;
+  }
+  
+  .theme-option {
+    width: 180px;
+  }
+}
+
+@media (max-width: 480px) {
+  .theme-options {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .theme-option {
+    width: 100%;
+    max-width: 250px;
+  }
+}

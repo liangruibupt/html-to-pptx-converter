@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { ConversionConfig, SlideLayout } from '../../models';
+import { ConversionConfig, SlideLayout, PresentationTheme } from '../../models';
 import SlideLayoutConfig from './SlideLayoutConfig';
 import ImageHandlingConfig from './ImageHandlingConfig';
+import ThemeSelectionConfig from './ThemeSelectionConfig';
 
 interface ConfigContainerProps {
   initialConfig: ConversionConfig;
@@ -38,6 +39,15 @@ const ConfigContainer: React.FC<ConfigContainerProps> = ({ initialConfig, onConf
     setConfig(updatedConfig);
     onConfigChange(updatedConfig);
   };
+  
+  const handleThemeChange = (theme: PresentationTheme) => {
+    const updatedConfig = {
+      ...config,
+      theme
+    };
+    setConfig(updatedConfig);
+    onConfigChange(updatedConfig);
+  };
 
   return (
     <div className="config-container">
@@ -55,6 +65,11 @@ const ConfigContainer: React.FC<ConfigContainerProps> = ({ initialConfig, onConf
           maxHeight: config.imageOptions?.maxHeight
         }}
         onChange={handleImageConfigChange}
+      />
+      
+      <ThemeSelectionConfig
+        initialTheme={config.theme}
+        onChange={handleThemeChange}
       />
       
       {/* Other configuration components will be added here */}
