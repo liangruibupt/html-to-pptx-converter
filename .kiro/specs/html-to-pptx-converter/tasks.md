@@ -49,13 +49,13 @@
     - Add custom selector input for advanced users
     - _Requirements: 2.5_
 
-  - [-] 3.5 Implement default configuration settings
+  - [x] 3.5 Implement default configuration settings
     - Create sensible defaults for all configuration options
     - Add reset to defaults functionality
     - _Requirements: 2.6_
 
 - [ ] 4. Implement HTML parsing functionality
-  - [ ] 4.1 Create HTML parser service
+  - [-] 4.1 Create HTML parser service
     - Implement safe HTML parsing
     - Add error handling for malformed HTML
     - _Requirements: 1.2, 1.5_
