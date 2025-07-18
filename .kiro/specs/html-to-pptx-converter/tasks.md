@@ -23,13 +23,13 @@
     - Add validation for HTML content
     - _Requirements: 1.4, 1.5_
 
-  - [ ] 2.4 Create HTML preview component
+  - [x] 2.4 Create HTML preview component
     - Implement safe HTML rendering
     - Style the preview to match the application theme
     - _Requirements: 1.3_
 
-- [ ] 3. Implement configuration UI
-  - [ ] 3.1 Create slide layout configuration component
+- [-] 3. Implement configuration UI
+  - [-] 3.1 Create slide layout configuration component
     - Implement options for different slide layouts
     - Add visual representation of layout options
     - _Requirements: 2.1, 2.2_

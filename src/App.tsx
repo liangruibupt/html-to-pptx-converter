@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import './styles/App.css';
 import FileUpload from './components/upload/FileUpload';
 import HtmlInput from './components/upload/HtmlInput';
+import HtmlPreview from './components/preview/HtmlPreview';
 
 /**
  * Main Application Container Component
@@ -124,6 +125,11 @@ const App: React.FC = () => {
               <div className="error-message" role="alert">
                 <p>{errorMessage}</p>
               </div>
+            )}
+            
+            {/* HTML Preview */}
+            {htmlContent && (
+              <HtmlPreview htmlContent={htmlContent} maxHeight={400} />
             )}
           </section>
         );
