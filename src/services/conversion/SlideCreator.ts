@@ -4,6 +4,7 @@ import { PptxGeneratorService } from '../pptx/PptxGeneratorInterface';
 import { ImageHandlerService } from './ImageHandlerInterface';
 import { TableHandlerService } from './TableHandlerInterface';
 import { ListHandlerService } from './ListHandlerInterface';
+import { LinkHandlerService } from './LinkHandlerInterface';
 
 /**
  * Slide Creator Service Implementation
@@ -19,6 +20,7 @@ export class SlideCreator implements SlideCreatorService {
   private imageHandler: ImageHandlerService;
   private tableHandler: TableHandlerService;
   private listHandler: ListHandlerService;
+  private linkHandler: LinkHandlerService;
   
   /**
    * Constructor
@@ -27,17 +29,20 @@ export class SlideCreator implements SlideCreatorService {
    * @param imageHandler - The image handler service
    * @param tableHandler - The table handler service
    * @param listHandler - The list handler service
+   * @param linkHandler - The link handler service
    */
   constructor(
     pptxGenerator: PptxGeneratorService, 
     imageHandler: ImageHandlerService,
     tableHandler: TableHandlerService,
-    listHandler: ListHandlerService
+    listHandler: ListHandlerService,
+    linkHandler: LinkHandlerService
   ) {
     this.pptxGenerator = pptxGenerator;
     this.imageHandler = imageHandler;
     this.tableHandler = tableHandler;
     this.listHandler = listHandler;
+    this.linkHandler = linkHandler;
   }
   
   /**
@@ -369,11 +374,36 @@ export class SlideCreator implements SlideCreatorService {
         case 'link':
           // Only add links if preserveLinks is true in the configuration
           if (config.preserveLinks) {
-            this.pptxGenerator.addLinkElement(
-              slide, 
-              element.content, 
-              { ...positions.link, ...element.style }
-            );
+            try {
+              // Process the link with the link handler
+              const processedLink = this.linkHandler.processLink(element.content);
+              
+              // Get link styling options
+              const linkOptions = this.linkHandler.applyLinkStyling(processedLink);
+              
+              // Merge with position options
+              const mergedOptions = {
+                ...positions.link,
+                ...linkOptions,
+                ...element.style
+              };
+              
+              // Add the link to the slide with the processed data and options
+              this.pptxGenerator.addLinkElement(
+                slide, 
+                processedLink, 
+                mergedOptions
+              );
+            } catch (error) {
+              console.warn(`Failed to process link: ${error instanceof Error ? error.message : String(error)}`);
+              
+              // Fallback to original link if processing fails
+              this.pptxGenerator.addLinkElement(
+                slide, 
+                element.content, 
+                { ...positions.link, ...element.style }
+              );
+            }
           }
           break;
           

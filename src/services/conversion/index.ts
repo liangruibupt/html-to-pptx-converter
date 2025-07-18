@@ -8,3 +8,5 @@ export { TableHandler } from './TableHandler';
 export { TableHandlerService, TableHandlingError } from './TableHandlerInterface';
 export { ListHandler } from './ListHandler';
 export { ListHandlerService, ListHandlingError } from './ListHandlerInterface';
+export { LinkHandler } from './LinkHandler';
+export { LinkHandlerService, LinkHandlingError } from './LinkHandlerInterface';

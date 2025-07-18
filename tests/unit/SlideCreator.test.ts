@@ -4,6 +4,7 @@ import { SlideCreationError } from '../../src/services/conversion/SlideCreatorIn
 import { ImageHandlerService } from '../../src/services/conversion/ImageHandlerInterface';
 import { TableHandlerService } from '../../src/services/conversion/TableHandlerInterface';
 import { ListHandlerService } from '../../src/services/conversion/ListHandlerInterface';
+import { LinkHandlerService } from '../../src/services/conversion/LinkHandlerInterface';
 import { 
   HTMLContent, 
   ConversionConfig, 
@@ -80,6 +81,22 @@ const mockListHandler: ListHandlerService = {
   }))
 };
 
+// Mock LinkHandlerService
+const mockLinkHandler: LinkHandlerService = {
+  processLink: vi.fn().mockImplementation((link) => link),
+  normalizeUrl: vi.fn().mockImplementation((url) => url),
+  extractLinkText: vi.fn().mockImplementation((html) => html),
+  applyLinkStyling: vi.fn().mockImplementation((link) => ({
+    x: 0.5,
+    y: 2,
+    w: '90%',
+    fontSize: 18,
+    color: '0000FF',
+    underline: true,
+    hyperlink: { url: link.href }
+  }))
+};
+
 describe('SlideCreator', () => {
   let slideCreator: SlideCreator;
   let mockPresentation: any;
@@ -146,7 +163,7 @@ describe('SlideCreator', () => {
     mockPptxGenerator.addSlide.mockReturnValue(mockSlide);
     
     // Create SlideCreator instance with mock services
-    slideCreator = new SlideCreator(mockPptxGenerator, mockImageHandler, mockTableHandler, mockListHandler);
+    slideCreator = new SlideCreator(mockPptxGenerator, mockImageHandler, mockTableHandler, mockListHandler, mockLinkHandler);
   });
   
   describe('createSlides', () => {
@@ -448,12 +465,28 @@ describe('SlideCreator', () => {
         }
       ];
       
+      // Mock the processed link
+      const processedLink = {
+        text: 'Test link',
+        href: 'https://example.com'
+      };
+      
+      mockLinkHandler.processLink.mockReturnValueOnce(processedLink);
+      
       await slideCreator.createSlideFromSection(mockPresentation, section, sampleConfig);
+      
+      expect(mockLinkHandler.processLink).toHaveBeenCalledWith(linkResource);
+      expect(mockLinkHandler.applyLinkStyling).toHaveBeenCalled();
       
       expect(mockPptxGenerator.addLinkElement).toHaveBeenCalledWith(
         mockSlide,
-        linkResource,
-        expect.objectContaining({ x: 0.5, y: 2, w: '90%' })
+        processedLink,
+        expect.objectContaining({
+          x: 0.5,
+          y: 2,
+          w: '90%',
+          hyperlink: { url: 'https://example.com' }
+        })
       );
     });
     
