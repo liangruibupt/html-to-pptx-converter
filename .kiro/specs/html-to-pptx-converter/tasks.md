@@ -136,17 +136,17 @@
     - _Requirements: 5.2_
 
 - [ ] 7. Implement PPTX download functionality
-  - [ ] 7.1 Create download service
+  - [x] 7.1 Create download service
     - Implement PPTX file generation
     - Add file naming functionality
     - _Requirements: 4.1, 4.3_
 
-  - [ ] 7.2 Implement download button and functionality
+  - [x] 7.2 Implement download button and functionality
     - Create download button UI component
     - Implement download initiation
     - _Requirements: 4.1, 4.2_
 
-  - [ ] 7.3 Implement download error handling
+  - [x] 7.3 Implement download error handling
     - Create error detection for download failures
     - Add retry functionality
     - _Requirements: 4.5_

@@ -1,0 +1,21 @@
+{
+  "enabled": true,
+  "name": "Auto Commit Completed Tasks",
+  "description": "Automatically commits changes to git when tasks or subtasks are completed, ensuring all work is properly version controlled according to the workflow requirements",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      ".kiro/specs/**/tasks.md",
+      "tasks.md",
+      "src/**/*",
+      "tests/**/*",
+      "package.json",
+      "README.md"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A task or subtask appears to have been completed based on file changes. Please check if there are any uncommitted changes in the git repository and commit them with an appropriate message following the format \"Task #X: Brief description of what was done\". Also verify that the task completion is properly reflected in tasks.md and push the changes to GitHub."
+  }
+}
