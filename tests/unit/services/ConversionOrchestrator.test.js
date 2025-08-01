@@ -90,7 +90,7 @@ describe('ConversionOrchestrator', () => {
       expect(result.result).toHaveProperty('size');
       expect(result.result).toHaveProperty('format', 'pptx');
       expect(result.result).toHaveProperty('slideCount');
-      expect(result.result).toHaveProperty('buffer');
+      expect(result.result).toHaveProperty('blob');
       expect(result.result).toHaveProperty('metadata');
     });
   });

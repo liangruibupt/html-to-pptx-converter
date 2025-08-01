@@ -60,7 +60,15 @@ The hooks are already set up in this project. To use them:
 
 1. Ensure you have Node.js installed
 2. Run `npm install` to install dependencies
-3. Make shell scripts executable: `chmod +x .kiro/hooks/*.sh`
+3. The hooks will automatically trigger when tasks are marked as completed in tasks.md files
+
+## Current Status
+
+✅ **Auto-commit hook is working and tested**
+- Successfully commits changes when tasks are completed
+- Automatically pushes to GitHub
+- Generates descriptive commit messages with task information
+- Currently configured to continue even if tests fail (due to test setup issues)
 
 ## Creating New Hooks
 

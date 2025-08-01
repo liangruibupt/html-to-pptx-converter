@@ -1,0 +1,354 @@
+/* Conversion Progress Component Styles */
+
+.conversion-progress {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+/* Progress Header */
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.progress-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-icon {
+  font-size: 18px;
+  font-weight: bold;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.status-icon.idle {
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+.status-icon.started,
+.status-icon.processing {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  animation: spin 1s linear infinite;
+}
+
+.status-icon.completed {
+  background-color: #e8f5e8;
+  color: #4caf50;
+}
+
+.status-icon.error {
+  background-color: #ffebee;
+  color: #f44336;
+}
+
+.status-icon.cancelled {
+  background-color: #fff3e0;
+  color: #ff9800;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.status-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+}
+
+.cancel-button {
+  background: #f44336;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s ease;
+}
+
+.cancel-button:hover {
+  background: #d32f2f;
+}
+
+.cancel-button:focus {
+  outline: 2px solid #f44336;
+  outline-offset: 2px;
+}
+
+/* Main Progress Bar */
+.progress-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.progress-fill.animated::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.progress-fill.primary {
+  background: linear-gradient(90deg, #1976d2, #42a5f5);
+}
+
+.progress-fill.success {
+  background: linear-gradient(90deg, #4caf50, #81c784);
+}
+
+.progress-fill.error {
+  background: linear-gradient(90deg, #f44336, #ef5350);
+}
+
+.progress-fill.warning {
+  background: linear-gradient(90deg, #ff9800, #ffb74d);
+}
+
+.progress-fill.default {
+  background: linear-gradient(90deg, #9e9e9e, #bdbdbd);
+}
+
+.progress-percentage {
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  min-width: 40px;
+  text-align: right;
+}
+
+/* Progress Message */
+.progress-message {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 20px;
+  text-align: center;
+  min-height: 20px;
+}
+
+/* Detailed Steps */
+.progress-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.progress-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  transition: all 0.3s ease;
+}
+
+.progress-step.active {
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+
+.step-indicator {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: #e0e0e0;
+  color: #666;
+  font-size: 12px;
+  font-weight: bold;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.progress-step.active .step-indicator {
+  background-color: #1976d2;
+  color: white;
+}
+
+.progress-step.completed .step-indicator {
+  background-color: #4caf50;
+  color: white;
+}
+
+.progress-step.failed .step-indicator {
+  background-color: #f44336;
+  color: white;
+}
+
+.step-number {
+  position: relative;
+  z-index: 2;
+}
+
+.step-progress-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #42a5f5, #1976d2);
+  transition: width 0.3s ease;
+  z-index: 1;
+}
+
+.step-label {
+  font-size: 14px;
+  color: #333;
+  flex: 1;
+}
+
+.progress-step.active .step-label {
+  font-weight: 500;
+  color: #1976d2;
+}
+
+.progress-step.completed .step-label {
+  color: #4caf50;
+}
+
+.progress-step.failed .step-label {
+  color: #f44336;
+}
+
+/* Status Messages */
+.error-message,
+.success-message {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.error-message {
+  background-color: #ffebee;
+  color: #c62828;
+  border-left: 4px solid #f44336;
+}
+
+.success-message {
+  background-color: #e8f5e8;
+  color: #2e7d32;
+  border-left: 4px solid #4caf50;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .conversion-progress {
+    padding: 16px;
+    margin: 0 16px;
+  }
+  
+  .progress-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .progress-steps {
+    gap: 8px;
+  }
+  
+  .progress-step {
+    padding: 6px 0;
+  }
+  
+  .progress-step.active {
+    padding: 6px 8px;
+  }
+  
+  .step-indicator {
+    width: 28px;
+    height: 28px;
+    font-size: 11px;
+  }
+  
+  .step-label {
+    font-size: 13px;
+  }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .conversion-progress {
+    border: 2px solid #000;
+  }
+  
+  .progress-bar {
+    border: 1px solid #000;
+  }
+  
+  .step-indicator {
+    border: 2px solid #000;
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .progress-fill,
+  .progress-step,
+  .status-icon,
+  .step-progress-bar {
+    transition: none;
+  }
+  
+  .status-icon.processing {
+    animation: none;
+  }
+  
+  .progress-fill.animated::after {
+    animation: none;
+  }
+}

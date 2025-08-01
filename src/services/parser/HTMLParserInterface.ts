@@ -1,4 +1,5 @@
 import { HTMLContent } from '../../models';
+import { HTMLParsingError } from '../error/ErrorHandlerInterface';
 
 /**
  * Interface for the HTML parser service
@@ -12,7 +13,7 @@ export interface HTMLParserService {
    * 
    * @param html - Raw HTML string to parse
    * @returns Parsed HTML content object
-   * @throws Error if the HTML is malformed or cannot be parsed
+   * @throws HTMLParsingError if the HTML is malformed or cannot be parsed
    */
   parseHTML(html: string): HTMLContent;
   

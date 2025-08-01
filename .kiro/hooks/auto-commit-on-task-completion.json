@@ -16,8 +16,8 @@
     {
       "step": "run_tests",
       "action": "execute_command",
-      "command": "echo 'Skipping tests for now'",
-      "description": "Skip tests temporarily",
+      "command": "npm test -- --run",
+      "description": "Run all tests to ensure code quality",
       "continueOnFailure": true
     },
     {

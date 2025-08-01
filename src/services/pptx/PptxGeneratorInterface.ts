@@ -1,4 +1,5 @@
 import { SlideLayout, PresentationTheme, ImageResource, TableResource, ListResource, LinkResource, TextResource } from '../../models';
+import { PptxGenerationError } from '../error/ErrorHandlerInterface';
 
 /**
  * Interface for the PPTX generator service
