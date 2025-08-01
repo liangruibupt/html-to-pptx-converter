@@ -1,129 +1,210 @@
 # HTML to PPTX Converter
 
-A client-side web application that transforms HTML content into PowerPoint presentations (PPTX format). Users can upload HTML files or directly input HTML content, configure conversion settings, and download the resulting PPTX file.
+A Node.js service that converts HTML content to PowerPoint presentations with progress tracking and orchestration capabilities.
 
 ## Features
 
-- HTML file upload and direct HTML input
-- Configurable conversion settings (slide layout, themes, section splitting)
-- Preservation of text formatting, images, tables, lists, and hyperlinks
-- Preview of HTML content before conversion
-- Download of generated PPTX files
+- **Conversion Orchestrator**: Main service that manages the conversion flow
+- **Progress Tracking**: Real-time progress updates during conversion
+- **Event-Driven Architecture**: Emits events for conversion lifecycle
+- **RESTful API**: HTTP endpoints for managing conversions
+- **Error Handling**: Comprehensive error handling and recovery
+- **Cancellation Support**: Ability to cancel ongoing conversions
 
-## Technology Stack
+## Architecture
 
-- **Frontend Framework**: React
-- **Language**: TypeScript
-- **Core Library**: PptxGenJS for PPTX generation
-- **Build Tool**: Vite
+### ConversionOrchestrator
 
-## Project Structure
+The core service that manages HTML to PPTX conversions:
 
+- **Event Emitter**: Extends EventEmitter for real-time updates
+- **Progress Tracking**: Tracks conversion progress through multiple steps
+- **Job Management**: Manages active and historical conversions
+- **Error Handling**: Graceful error handling with detailed error information
+
+#### Conversion Steps
+
+1. **Parsing**: Parse HTML content and extract structure
+2. **Processing**: Process content into slide-ready format
+3. **Generating**: Generate PowerPoint presentation
+4. **Finalizing**: Complete conversion and prepare result
+
+#### Events
+
+- `conversionStarted`: Emitted when a conversion begins
+- `conversionProgress`: Emitted during conversion with progress updates
+- `conversionCompleted`: Emitted when conversion finishes successfully
+- `conversionFailed`: Emitted when conversion fails
+- `conversionCancelled`: Emitted when conversion is cancelled
+
+### API Endpoints
+
+#### Start Conversion
 ```
-/
-├── src/                    # Source code
-│   ├── components/         # UI components
-│   │   ├── upload/         # File upload components
-│   │   ├── config/         # Configuration components
-│   │   ├── preview/        # HTML preview components
-│   │   └── download/       # Download components
-│   ├── services/           # Core services
-│   │   ├── parser/         # HTML parsing services
-│   │   ├── conversion/     # Conversion engine
-│   │   ├── pptx/           # PptxGenJS integration
-│   │   └── download/       # Download management
-│   ├── models/             # TypeScript interfaces and types
-│   ├── utils/              # Utility functions
-│   ├── hooks/              # Custom React hooks
-│   ├── store/              # State management
-│   ├── assets/             # Static assets
-│   └── styles/             # Global styles
-├── public/                 # Public assets
-└── tests/                  # Test files
-    ├── unit/               # Unit tests
-    ├── integration/        # Integration tests
-    └── e2e/                # End-to-end tests
+POST /api/conversions
+Content-Type: application/json
+
+{
+  "html": "<h1>Slide Title</h1><p>Content</p>",
+  "options": {
+    "theme": "default"
+  }
+}
 ```
 
-## Getting Started
+#### Get Conversion Status
+```
+GET /api/conversions/{id}/status
+```
 
-### Prerequisites
+#### Get Conversion Result
+```
+GET /api/conversions/{id}/result
+```
 
-- Node.js (v14 or higher)
-- npm (v6 or higher)
+#### Download Converted File
+```
+GET /api/conversions/{id}/download
+```
 
-### Installation
+#### Cancel Conversion
+```
+DELETE /api/conversions/{id}
+```
+
+#### List All Conversions
+```
+GET /api/conversions
+```
+
+## Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/html-to-pptx-converter.git
-cd html-to-pptx-converter
-
-# Install dependencies
 npm install
 ```
 
-### Development
+## Usage
+
+### Start the Service
 
 ```bash
-# Start development server
+npm start
+```
+
+### Development Mode
+
+```bash
 npm run dev
 ```
 
-The application will be available at http://localhost:3000.
-
-### Building for Production
+### Run Tests
 
 ```bash
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
-```
-
-### Testing
-
-```bash
-# Run unit tests
 npm test
-
-# Run unit tests in watch mode
-npm run test:watch
-
-# Run end-to-end tests
-npm run test:e2e
-
-# Open Cypress test runner
-npm run test:e2e:open
 ```
 
-### Code Quality
+### Run Tests in Watch Mode
 
 ```bash
-# Run linter
-npm run lint
-
-# Run type checking
-npm run type-check
+npm run test:watch
 ```
 
-## Key Dependencies
+## Example Usage
 
-- **PptxGenJS**: Core library for generating PPTX files
-- **React**: UI framework
-- **TypeScript**: For type safety
-- **Vite**: Build tool
-- **Vitest**: Testing framework
-- **Cypress**: End-to-end testing
+### Starting a Conversion
 
-## User Experience Goals
+```javascript
+import { conversionOrchestrator } from './src/services/ConversionOrchestrator.js';
 
-- Intuitive and responsive interface
-- Clear visual feedback during the conversion process
-- Helpful error messages and guidance
-- Support for different screen sizes and devices
+// Start conversion
+const conversionId = await conversionOrchestrator.startConversion({
+  html: '<h1>My Presentation</h1><p>Slide content here</p>',
+  options: { theme: 'corporate' }
+});
 
-## License
+// Listen for progress updates
+conversionOrchestrator.on('conversionProgress', ({ conversionId, progress, step }) => {
+  console.log(`Conversion ${conversionId}: ${progress}% - ${step}`);
+});
 
-[MIT](LICENSE)
+// Listen for completion
+conversionOrchestrator.on('conversionCompleted', ({ conversionId }) => {
+  console.log(`Conversion ${conversionId} completed!`);
+  const result = conversionOrchestrator.getConversionResult(conversionId);
+  console.log('Result:', result);
+});
+```
+
+### Using the HTTP API
+
+```bash
+# Start a conversion
+curl -X POST http://localhost:3000/api/conversions \
+  -H "Content-Type: application/json" \
+  -d '{"html": "<h1>Test Slide</h1><p>Content</p>"}'
+
+# Check status
+curl http://localhost:3000/api/conversions/{conversion-id}/status
+
+# Get result
+curl http://localhost:3000/api/conversions/{conversion-id}/result
+
+# Download file
+curl http://localhost:3000/api/conversions/{conversion-id}/download \
+  -o presentation.pptx
+```
+
+## Configuration
+
+The service can be configured using environment variables:
+
+- `PORT`: Server port (default: 3000)
+
+## Dependencies
+
+- **express**: Web framework for API endpoints
+- **pptxgenjs**: PowerPoint generation library
+- **jsdom**: HTML parsing and manipulation
+- **uuid**: Unique identifier generation
+
+## Development Dependencies
+
+- **vitest**: Testing framework
+- **supertest**: HTTP testing utilities
+
+## Testing
+
+The service includes comprehensive tests for:
+
+- ConversionOrchestrator functionality
+- API endpoint behavior
+- Error handling scenarios
+- Progress tracking
+- Event emission
+
+Run tests with:
+
+```bash
+npm test
+```
+
+## Error Handling
+
+The service provides detailed error information including:
+
+- Error messages and stack traces
+- Timestamps for debugging
+- Conversion context when errors occur
+- Graceful degradation for failed conversions
+
+## Progress Tracking
+
+Conversions are tracked through multiple stages:
+
+1. **Initiated**: Conversion request received
+2. **Processing**: Active conversion in progress
+3. **Completed**: Conversion finished successfully
+4. **Failed**: Conversion encountered an error
+5. **Cancelled**: Conversion was cancelled by user
+
+Each stage provides progress percentage and detailed status information.

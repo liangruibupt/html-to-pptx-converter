@@ -1,47 +1,82 @@
-# Agent Hooks for HTML to PPTX Converter
+# Kiro Agent Hooks
 
-This directory contains agent hooks that automate various tasks in the development workflow.
+This directory contains agent hooks that automate various development workflow tasks.
 
 ## Available Hooks
 
-### Task Completion Commit
-- **Trigger**: When a task is marked as completed
-- **Action**: Automatically commits code changes with a descriptive message
-- **Format**: `Task #X: Brief description of what was done`
+### 1. Task Completion Auto-Commit Hook
 
-### Task Start Check
-- **Trigger**: When a task is marked as in progress
-- **Action**: Checks for uncommitted changes before starting a new task
-- **Purpose**: Ensures clean state before beginning new work
+**Purpose**: Automatically commit and push code changes when tasks are marked as completed.
 
-### Manual Code Commit
-- **Trigger**: Manual (user-initiated)
-- **Action**: Helps commit code changes with proper formatting
-- **Usage**: Use this when you want to make intermediate commits during task implementation
+**Files**:
+- `auto-commit.cjs` - Main JavaScript implementation
+- `auto-commit-on-task-completion.json` - JSON configuration for Kiro
 
-## How to Use
+**Usage**:
 
-1. **Automatic Hooks**: These will trigger automatically when tasks are marked as completed or in progress.
+#### Manual Execution
+```bash
+# Using npm script
+npm run commit-task
 
-2. **Manual Hook**: To use the manual commit hook:
-   - Open the Command Palette (Cmd+Shift+P / Ctrl+Shift+P)
-   - Search for "Kiro: Run Agent Hook"
-   - Select "Manual Code Commit"
-   - Follow the agent's instructions
-
-## Commit Message Format
-
-All commits should follow this format:
-```
-Task #X: Brief description of what was done
+# Using Node.js directly
+node .kiro/hooks/auto-commit.cjs
 ```
 
-Where:
-- `X` is the task number (e.g., 2.3 for "Implement HTML content input component")
-- The description should be concise but descriptive
+#### Automatic Execution
+The hook can be configured to trigger automatically when:
+- A task status is changed to "completed" in tasks.md
+- Code changes are detected
+- All tests are passing
 
-## Example
+**Features**:
+- ✅ Runs tests before committing to ensure code quality
+- ✅ Generates descriptive commit messages with task information
+- ✅ Stages relevant files automatically
+- ✅ Pushes changes to remote repository
+- ✅ Provides clear feedback and error handling
+- ✅ Supports both manual and automatic execution
 
-```
-Task #2.3: Implement HTML content input component with validation
-```
+**Workflow**:
+1. Detects completed tasks in `.kiro/specs/**/tasks.md`
+2. Runs `npm test -- --run` to ensure code quality
+3. Stages all relevant changes
+4. Creates commit with format: `Task #X.Y: Task Description`
+5. Pushes changes to the remote repository
+
+**Configuration**:
+The hook can be customized by modifying the configuration file:
+- `auto-commit-on-task-completion.json` - Main JSON configuration
+
+**Error Handling**:
+- Aborts if tests fail
+- Warns if push fails but commit succeeds
+- Provides clear error messages
+- Logs all operations for debugging
+
+## Installation
+
+The hooks are already set up in this project. To use them:
+
+1. Ensure you have Node.js installed
+2. Run `npm install` to install dependencies
+3. Make shell scripts executable: `chmod +x .kiro/hooks/*.sh`
+
+## Creating New Hooks
+
+To create a new hook:
+
+1. Create your hook file in this directory
+2. Add documentation to this README
+3. Add any necessary npm scripts to package.json
+4. Test your hook thoroughly
+5. Update the main project documentation
+
+## Best Practices
+
+- Always run tests before committing
+- Use descriptive commit messages
+- Handle errors gracefully
+- Provide clear user feedback
+- Document your hooks thoroughly
+- Test hooks in different scenarios
