@@ -152,7 +152,7 @@
     - _Requirements: 4.5_
 
 - [ ] 8. Implement application state management
-  - [ ] 8.1 Create state management service
+  - [x] 8.1 Create state management service
     - Implement state container
     - Add state update functions
     - _Requirements: 5.1_
