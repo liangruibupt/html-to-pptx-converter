@@ -2,12 +2,17 @@ import {
   AppState, 
   AppAction, 
   AppPhase,
-  ConversionConfig 
+  ConversionConfig,
+  UploadState,
+  ConfigurationState,
+  PreviewState,
+  ConversionState,
+  DownloadState,
+  UIState
 } from '../../store/types';
-import { appReducer, initialState } from '../../store/reducer';
-import { actions } from '../../store/actions';
 import { DownloadResult, DownloadError } from '../download';
 import { ConversionError } from '../error';
+import { defaultConfig } from '../../utils/defaultConfig';
 
 /**
  * State Service Interface
@@ -23,6 +28,76 @@ export type StateListener = (state: AppState) => void;
 export type StateSelector<T> = (state: AppState) => T;
 
 /**
+ * Create initial state
+ */
+function createInitialState(): AppState {
+  const initialUploadState: UploadState = {
+    isUploading: false,
+    htmlContent: null,
+    originalFilename: null,
+    fileSize: null,
+    uploadMethod: null,
+    uploadedAt: null,
+    validationErrors: []
+  };
+
+  const initialConfigurationState: ConfigurationState = {
+    config: defaultConfig,
+    isModified: false,
+    validationErrors: {},
+    availableThemes: ['DEFAULT', 'PROFESSIONAL', 'CREATIVE', 'MINIMAL'],
+    availableLayouts: ['STANDARD', 'WIDE', 'CUSTOM']
+  };
+
+  const initialPreviewState: PreviewState = {
+    isGenerating: false,
+    parsedContent: null,
+    sections: null,
+    errors: []
+  };
+
+  const initialConversionState: ConversionState = {
+    isConverting: false,
+    progress: 0,
+    currentStep: '',
+    message: '',
+    currentStepIndex: 0,
+    jobId: null,
+    startedAt: null,
+    completedAt: null,
+    result: null,
+    error: null
+  };
+
+  const initialDownloadState: DownloadState = {
+    isAvailable: false,
+    result: null,
+    errors: [],
+    attempts: 0,
+    lastDownloadAt: null
+  };
+
+  const initialUIState: UIState = {
+    currentPhase: 'upload' as AppPhase,
+    isLoading: false,
+    globalError: null,
+    successMessage: null,
+    sidebarOpen: false,
+    activeSection: 'upload',
+    notifications: []
+  };
+
+  return {
+    upload: initialUploadState,
+    configuration: initialConfigurationState,
+    preview: initialPreviewState,
+    conversion: initialConversionState,
+    download: initialDownloadState,
+    ui: initialUIState
+  };
+}
+
+/**
  * State Service Implementation
  */
 export class StateService {
@@ -31,6 +106,7 @@ export class StateService {
   private isDispatching: boolean = false;
 
   constructor(initialStateOverride?: Partial<AppState>) {
+    const initialState = createInitialState();
     this.state = initialStateOverride 
       ? { ...initialState, ...initialStateOverride }
       : initialState;
@@ -62,7 +138,7 @@ export class StateService {
 
     try {
       const previousState = this.state;
-      this.state = appReducer(this.state, action);
+      this.state = this.reduceState(this.state, action);
 
       // Notify listeners if state changed
       if (this.state !== previousState) {
@@ -71,6 +147,175 @@ export class StateService {
     } finally {
       this.isDispatching = false;
     }
+  }
+
+  /**
+   * Simple state reducer
+   */
+  private reduceState(state: AppState, action: AppAction): AppState {
+    // For now, implement a simple reducer that handles basic actions
+    // This can be expanded as needed
+    const newState = { ...state };
+
+    // Add timestamp to action if not present
+    const actionWithTimestamp = {
+      ...action,
+      timestamp: action.timestamp || new Date()
+    };
+
+    // Handle the action based on its type
+    switch (actionWithTimestamp.type) {
+      case 'SET_HTML_CONTENT':
+        newState.upload = {
+          ...newState.upload,
+          htmlContent: (actionWithTimestamp as any).payload.htmlContent,
+          uploadMethod: (actionWithTimestamp as any).payload.method,
+          originalFilename: (actionWithTimestamp as any).payload.originalFilename || null,
+          fileSize: (actionWithTimestamp as any).payload.fileSize || null,
+          uploadedAt: new Date(),
+          validationErrors: []
+        };
+        // Auto-transition to configure phase
+        if (newState.ui.currentPhase === 'upload') {
+          newState.ui = {
+            ...newState.ui,
+            currentPhase: 'configure' as AppPhase,
+            activeSection: 'configure'
+          };
+        }
+        break;
+
+      case 'UPLOAD_START':
+        newState.upload = {
+          ...newState.upload,
+          isUploading: true,
+          validationErrors: []
+        };
+        break;
+
+      case 'UPLOAD_ERROR':
+        newState.upload = {
+          ...newState.upload,
+          isUploading: false,
+          validationErrors: (actionWithTimestamp as any).payload.errors
+        };
+        break;
+
+      case 'UPDATE_CONFIG':
+        newState.configuration = {
+          ...newState.configuration,
+          config: {
+            ...newState.configuration.config,
+            ...(actionWithTimestamp as any).payload.config
+          },
+          isModified: true
+        };
+        break;
+
+      case 'RESET_CONFIG':
+        newState.configuration = {
+          ...newState.configuration,
+          config: defaultConfig,
+          isModified: false,
+          validationErrors: {}
+        };
+        break;
+
+      case 'SET_PHASE':
+        newState.ui = {
+          ...newState.ui,
+          currentPhase: (actionWithTimestamp as any).payload.phase,
+          activeSection: (actionWithTimestamp as any).payload.phase
+        };
+        break;
+
+      case 'SET_LOADING':
+        newState.ui = {
+          ...newState.ui,
+          isLoading: (actionWithTimestamp as any).payload.isLoading
+        };
+        break;
+
+      case 'SET_GLOBAL_ERROR':
+        newState.ui = {
+          ...newState.ui,
+          globalError: (actionWithTimestamp as any).payload.error,
+          successMessage: null
+        };
+        break;
+
+      case 'SET_SUCCESS_MESSAGE':
+        newState.ui = {
+          ...newState.ui,
+          successMessage: (actionWithTimestamp as any).payload.message,
+          globalError: null
+        };
+        break;
+
+      case 'CLEAR_MESSAGES':
+        newState.ui = {
+          ...newState.ui,
+          globalError: null,
+          successMessage: null
+        };
+        break;
+
+      case 'CONVERSION_START':
+        newState.conversion = {
+          ...newState.conversion,
+          isConverting: true,
+          progress: 0,
+          currentStep: 'Starting conversion...',
+          message: 'Initializing conversion process...',
+          currentStepIndex: 0,
+          jobId: (actionWithTimestamp as any).payload.jobId,
+          startedAt: new Date(),
+          completedAt: null,
+          result: null,
+          error: null
+        };
+        newState.ui = {
+          ...newState.ui,
+          currentPhase: 'converting' as AppPhase
+        };
+        break;
+
+      case 'CONVERSION_PROGRESS':
+        newState.conversion = {
+          ...newState.conversion,
+          progress: (actionWithTimestamp as any).payload.progress,
+          currentStep: (actionWithTimestamp as any).payload.currentStep,
+          message: (actionWithTimestamp as any).payload.message,
+          currentStepIndex: (actionWithTimestamp as any).payload.currentStepIndex
+        };
+        break;
+
+      case 'CONVERSION_SUCCESS':
+        newState.conversion = {
+          ...newState.conversion,
+          isConverting: false,
+          progress: 100,
+          currentStep: 'Conversion completed',
+          message: 'Conversion completed successfully!',
+          completedAt: new Date(),
+          result: (actionWithTimestamp as any).payload.result,
+          error: null
+        };
+        newState.ui = {
+          ...newState.ui,
+          currentPhase: 'completed' as AppPhase
+        };
+        break;
+
+      case 'RESET_ALL':
+        return createInitialState();
+
+      default:
+        // Return state unchanged for unhandled actions
+        break;
+    }
+
+    return newState;
   }
 
   /**
@@ -109,7 +354,7 @@ export class StateService {
    * Reset the entire state to initial values
    */
   reset(): void {
-    this.dispatch(actions.global.resetAll());
+    this.dispatch({ type: 'RESET_ALL' } as any);
   }
 
   /**
@@ -207,122 +452,139 @@ export class StateService {
 
   // Upload actions
   startUpload(method: 'file' | 'direct'): void {
-    this.dispatch(actions.upload.start(method));
+    this.dispatch({ type: 'UPLOAD_START', payload: { method } } as any);
   }
 
   setHtmlContent(content: string, method: 'file' | 'direct', filename?: string, size?: number): void {
-    this.dispatch(actions.upload.setContent(content, method, filename, size));
+    this.dispatch({ 
+      type: 'SET_HTML_CONTENT', 
+      payload: { 
+        htmlContent: content, 
+        method, 
+        originalFilename: filename, 
+        fileSize: size 
+      } 
+    } as any);
   }
 
   uploadError(errors: string[]): void {
-    this.dispatch(actions.upload.error(errors));
+    this.dispatch({ type: 'UPLOAD_ERROR', payload: { errors } } as any);
   }
 
   // Configuration actions
   updateConfig(config: Partial<ConversionConfig>): void {
-    this.dispatch(actions.config.update(config));
+    this.dispatch({ type: 'UPDATE_CONFIG', payload: { config } } as any);
   }
 
   resetConfig(): void {
-    this.dispatch(actions.config.reset());
+    this.dispatch({ type: 'RESET_CONFIG' } as any);
   }
 
   setConfigValidationError(field: string, error: string): void {
-    this.dispatch(actions.config.setValidationError(field, error));
+    this.dispatch({ type: 'SET_CONFIG_VALIDATION_ERROR', payload: { field, error } } as any);
   }
 
   // Preview actions
   startPreview(): void {
-    this.dispatch(actions.preview.start());
+    this.dispatch({ type: 'PREVIEW_START' } as any);
   }
 
   previewSuccess(parsedContent: any, sections: any[]): void {
-    this.dispatch(actions.preview.success(parsedContent, sections));
+    this.dispatch({ type: 'PREVIEW_SUCCESS', payload: { parsedContent, sections } } as any);
   }
 
   previewError(errors: string[]): void {
-    this.dispatch(actions.preview.error(errors));
+    this.dispatch({ type: 'PREVIEW_ERROR', payload: { errors } } as any);
   }
 
   // Conversion actions
   startConversion(jobId: string): void {
-    this.dispatchMultiple(actions.workflow.startConversion(jobId));
+    this.dispatch({ type: 'CONVERSION_START', payload: { jobId } } as any);
   }
 
   updateConversionProgress(progress: number, step: string, message: string, stepIndex: number): void {
-    this.dispatch(actions.conversion.progress(progress, step, message, stepIndex));
+    this.dispatch({ 
+      type: 'CONVERSION_PROGRESS', 
+      payload: { progress, currentStep: step, message, currentStepIndex: stepIndex } 
+    } as any);
   }
 
   completeConversion(result: any, downloadResult: DownloadResult): void {
-    this.dispatchMultiple(actions.workflow.completeConversion(result, downloadResult));
+    this.dispatch({ type: 'CONVERSION_SUCCESS', payload: { result } } as any);
+    // Also make download available
+    this.dispatch({ type: 'DOWNLOAD_AVAILABLE', payload: { result: downloadResult } } as any);
   }
 
   conversionError(error: ConversionError): void {
-    this.dispatchMultiple(actions.workflow.failConversion(error));
+    this.dispatch({ type: 'CONVERSION_ERROR', payload: { error } } as any);
+    this.setPhase('error' as AppPhase);
+    this.setGlobalError(error.userMessage || error.message);
   }
 
   // Download actions
   downloadSuccess(result: DownloadResult): void {
-    this.dispatch(actions.download.success(result));
+    this.dispatch({ type: 'DOWNLOAD_SUCCESS', payload: { result } } as any);
   }
 
   downloadError(error: DownloadError): void {
-    this.dispatch(actions.download.error(error));
+    this.dispatch({ type: 'DOWNLOAD_ERROR', payload: { error } } as any);
   }
 
   // UI actions
   setPhase(phase: AppPhase): void {
-    this.dispatch(actions.ui.setPhase(phase));
+    this.dispatch({ type: 'SET_PHASE', payload: { phase } } as any);
   }
 
   setLoading(isLoading: boolean): void {
-    this.dispatch(actions.ui.setLoading(isLoading));
+    this.dispatch({ type: 'SET_LOADING', payload: { isLoading } } as any);
   }
 
   setGlobalError(error: string | null): void {
-    this.dispatch(actions.ui.setGlobalError(error));
+    this.dispatch({ type: 'SET_GLOBAL_ERROR', payload: { error } } as any);
   }
 
   setSuccessMessage(message: string | null): void {
-    this.dispatch(actions.ui.setSuccessMessage(message));
+    this.dispatch({ type: 'SET_SUCCESS_MESSAGE', payload: { message } } as any);
   }
 
   clearMessages(): void {
-    this.dispatch(actions.ui.clearMessages());
+    this.dispatch({ type: 'CLEAR_MESSAGES' } as any);
   }
 
   setActiveSection(section: string): void {
-    this.dispatch(actions.ui.setActiveSection(section));
+    this.dispatch({ type: 'SET_ACTIVE_SECTION', payload: { section } } as any);
   }
 
   // Notification actions
   showSuccess(title: string, message: string): void {
-    this.dispatchMultiple(actions.workflow.showSuccess(title, message));
+    this.setSuccessMessage(message);
+    // Could add notification logic here
   }
 
   showError(title: string, message: string): void {
-    this.dispatchMultiple(actions.workflow.showError(title, message));
+    this.setGlobalError(message);
+    // Could add notification logic here
   }
 
   showWarning(title: string, message: string): void {
-    this.dispatchMultiple(actions.workflow.showWarning(title, message));
+    // Could add notification logic here
   }
 
   showInfo(title: string, message: string): void {
-    this.dispatchMultiple(actions.workflow.showInfo(title, message));
+    // Could add notification logic here
   }
 
   removeNotification(id: string): void {
-    this.dispatch(actions.ui.removeNotification(id));
+    this.dispatch({ type: 'REMOVE_NOTIFICATION', payload: { id } } as any);
   }
 
   clearNotifications(): void {
-    this.dispatch(actions.ui.clearNotifications());
+    this.dispatch({ type: 'CLEAR_NOTIFICATIONS' } as any);
   }
 
   // Workflow actions
   startOver(): void {
-    this.dispatchMultiple(actions.workflow.startOver());
+    this.reset();
   }
 
   /**

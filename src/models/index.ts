@@ -1,22 +1,4 @@
-// UI State and Actions
-export interface UIState {
-  isUploading: boolean;
-  isConverting: boolean;
-  isDownloading: boolean;
-  errorMessage: string | null;
-  htmlPreview: string | null;
-  conversionConfig: ConversionConfig;
-}
-
-export interface UIActions {
-  uploadHTML(file: File): Promise<void>;
-  setHtmlContent(content: string): void;
-  updateConfig(config: Partial<ConversionConfig>): void;
-  startConversion(): Promise<void>;
-  downloadPPTX(): void;
-}
-
-// Configuration Models
+// Configuration Models - Export these first
 export interface ImageProcessingOptions {
   maxWidth?: number;
   maxHeight?: number;
@@ -54,6 +36,26 @@ export enum SplitStrategy {
   BY_CUSTOM_SELECTOR = 'BY_CUSTOM_SELECTOR',
   NO_SPLIT = 'NO_SPLIT'
 }
+
+// UI State and Actions
+export interface UIState {
+  isUploading: boolean;
+  isConverting: boolean;
+  isDownloading: boolean;
+  errorMessage: string | null;
+  htmlPreview: string | null;
+  conversionConfig: ConversionConfig;
+}
+
+export interface UIActions {
+  uploadHTML(file: File): Promise<void>;
+  setHtmlContent(content: string): void;
+  updateConfig(config: Partial<ConversionConfig>): void;
+  startConversion(): Promise<void>;
+  downloadPPTX(): void;
+}
+
+
 
 // HTML Parser Models
 export interface Section {

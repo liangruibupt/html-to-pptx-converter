@@ -11,6 +11,9 @@ import { ConversionConfig } from '../models';
 import { DownloadResult, DownloadError } from '../services/download';
 import { ConversionError } from '../services/error';
 
+// Re-export ConversionConfig for use in other modules
+export { ConversionConfig };
+
 /**
  * Application phases representing the main workflow steps
  */
