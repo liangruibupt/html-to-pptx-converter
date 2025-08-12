@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { DownloadButton } from './DownloadButton';
 import { DownloadService, DownloadResult, DownloadError } from '../../services/download';
 import { DownloadErrorHandler } from '../../services/download/DownloadErrorHandler';
+import { useDownload, useConversion, useUI } from '../../store/hooks';
 import './DownloadManager.css';
 
 /**
@@ -54,7 +55,7 @@ interface DownloadAttempt {
  * Manages PPTX downloads with error handling and retry functionality
  */
 export const DownloadManager: React.FC<DownloadManagerProps> = ({
-  blob,
+  blob: propBlob,
   originalName,
   filename,
   enabled = true,
@@ -65,6 +66,10 @@ export const DownloadManager: React.FC<DownloadManagerProps> = ({
   onSuccess,
   onError
 }) => {
+  const download = useDownload();
+  const conversion = useConversion();
+  const ui = useUI();
+  
   const [downloadService] = useState(() => new DownloadService());
   const [errorHandler] = useState(() => new DownloadErrorHandler({
     retryConfig: { maxRetries: maxRetries },
@@ -73,6 +78,9 @@ export const DownloadManager: React.FC<DownloadManagerProps> = ({
   const [downloadAttempts, setDownloadAttempts] = useState<DownloadAttempt[]>([]);
   const [currentAttempt, setCurrentAttempt] = useState<DownloadAttempt | null>(null);
   const [retryTimeout, setRetryTimeout] = useState<NodeJS.Timeout | null>(null);
+  
+  // Use blob from props or conversion result
+  const blob = propBlob || (conversion.result?.blob as Blob);
 
   /**
    * Clean up retry timeout on unmount
@@ -137,9 +145,13 @@ export const DownloadManager: React.FC<DownloadManagerProps> = ({
       });
     }
 
+    // Update state
+    download.downloadSuccess(result);
+    ui.addNotification('success', 'Download Complete', 'Your PPTX file has been downloaded successfully!');
+    
     onSuccess?.(result);
     setCurrentAttempt(null);
-  }, [currentAttempt, updateDownloadAttempt, onSuccess]);
+  }, [currentAttempt, updateDownloadAttempt, download, ui, onSuccess]);
 
   /**
    * Handle download error with retry logic
@@ -191,6 +203,10 @@ export const DownloadManager: React.FC<DownloadManagerProps> = ({
           { originalError: error, conversionError: errorResult.conversionError }
         );
 
+        // Update state
+        download.downloadError(enhancedError);
+        ui.addNotification('error', 'Download Failed', enhancedError.message);
+
         onError?.(enhancedError);
         setCurrentAttempt(null);
       }
@@ -202,6 +218,10 @@ export const DownloadManager: React.FC<DownloadManagerProps> = ({
         status: 'error',
         error
       });
+
+      // Update state
+      download.downloadError(error);
+      ui.addNotification('error', 'Download Error', 'Failed to handle download error');
 
       onError?.(error);
       setCurrentAttempt(null);

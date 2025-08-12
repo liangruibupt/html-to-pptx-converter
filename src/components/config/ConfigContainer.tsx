@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ConversionConfig, SlideLayout, PresentationTheme, SplitStrategy } from '../../models';
+import { useConfiguration, useUI } from '../../store/hooks';
 import SlideLayoutConfig from './SlideLayoutConfig';
 import ImageHandlingConfig from './ImageHandlingConfig';
 import ThemeSelectionConfig from './ThemeSelectionConfig';
@@ -66,50 +67,63 @@ interface ConfigContainerProps {
  * - 2.1: Provide options to configure the conversion process
  */
 const ConfigContainer: React.FC<ConfigContainerProps> = ({ initialConfig, onConfigChange }) => {
-  const [config, setConfig] = useState<ConversionConfig>(initialConfig);
+  const configuration = useConfiguration();
+  const ui = useUI();
+  const [localConfig, setLocalConfig] = useState<ConversionConfig>(configuration.config);
+  
+  // Sync local config with store config
+  useEffect(() => {
+    setLocalConfig(configuration.config);
+  }, [configuration.config]);
 
   const handleSlideLayoutChange = (layout: SlideLayout) => {
     const updatedConfig = {
-      ...config,
       slideLayout: layout
     };
-    setConfig(updatedConfig);
-    onConfigChange(updatedConfig);
+    configuration.updateConfig(updatedConfig);
+    setLocalConfig(prev => ({ ...prev, ...updatedConfig }));
+    onConfigChange({ ...localConfig, ...updatedConfig });
+    ui.addNotification('info', 'Configuration Updated', `Slide layout changed to ${formatSlideLayout(layout)}`);
   };
   
   const handleImageConfigChange = (includeImages: boolean, options: any) => {
     const updatedConfig = {
-      ...config,
       includeImages,
       imageOptions: options
     };
-    setConfig(updatedConfig);
-    onConfigChange(updatedConfig);
+    configuration.updateConfig(updatedConfig);
+    setLocalConfig(prev => ({ ...prev, ...updatedConfig }));
+    onConfigChange({ ...localConfig, ...updatedConfig });
+    ui.addNotification('info', 'Configuration Updated', `Image handling ${includeImages ? 'enabled' : 'disabled'}`);
   };
   
   const handleThemeChange = (theme: PresentationTheme) => {
     const updatedConfig = {
-      ...config,
       theme
     };
-    setConfig(updatedConfig);
-    onConfigChange(updatedConfig);
+    configuration.updateConfig(updatedConfig);
+    setLocalConfig(prev => ({ ...prev, ...updatedConfig }));
+    onConfigChange({ ...localConfig, ...updatedConfig });
+    ui.addNotification('info', 'Configuration Updated', `Theme changed to ${formatTheme(theme)}`);
   };
   
   const handleSectionSplittingChange = (strategy: SplitStrategy, customSelector?: string) => {
     const updatedConfig = {
-      ...config,
       splitSections: strategy,
       customSectionSelector: customSelector
     };
-    setConfig(updatedConfig);
-    onConfigChange(updatedConfig);
+    configuration.updateConfig(updatedConfig);
+    setLocalConfig(prev => ({ ...prev, ...updatedConfig }));
+    onConfigChange({ ...localConfig, ...updatedConfig });
+    ui.addNotification('info', 'Configuration Updated', `Section splitting changed to ${formatSplitStrategy(strategy)}`);
   };
 
   const handleResetToDefaults = () => {
+    configuration.resetConfig();
     const resetConfig = resetToDefaults();
-    setConfig(resetConfig);
+    setLocalConfig(resetConfig);
     onConfigChange(resetConfig);
+    ui.addNotification('success', 'Configuration Reset', 'All settings have been reset to defaults');
   };
 
   return (
@@ -126,29 +140,29 @@ const ConfigContainer: React.FC<ConfigContainerProps> = ({ initialConfig, onConf
       </div>
       
       <SlideLayoutConfig 
-        initialLayout={config.slideLayout}
+        initialLayout={localConfig.slideLayout}
         onChange={handleSlideLayoutChange}
       />
       
       <ImageHandlingConfig
-        initialIncludeImages={config.includeImages}
+        initialIncludeImages={localConfig.includeImages}
         initialOptions={{
-          preserveAspectRatio: config.imageOptions?.preserveAspectRatio || true,
-          quality: config.imageOptions?.quality || 80,
-          maxWidth: config.imageOptions?.maxWidth,
-          maxHeight: config.imageOptions?.maxHeight
+          preserveAspectRatio: localConfig.imageOptions?.preserveAspectRatio || true,
+          quality: localConfig.imageOptions?.quality || 80,
+          maxWidth: localConfig.imageOptions?.maxWidth,
+          maxHeight: localConfig.imageOptions?.maxHeight
         }}
         onChange={handleImageConfigChange}
       />
       
       <ThemeSelectionConfig
-        initialTheme={config.theme}
+        initialTheme={localConfig.theme}
         onChange={handleThemeChange}
       />
       
       <SectionSplittingConfig
-        initialStrategy={config.splitSections}
-        initialCustomSelector={config.customSectionSelector}
+        initialStrategy={localConfig.splitSections}
+        initialCustomSelector={localConfig.customSectionSelector}
         onChange={handleSectionSplittingChange}
       />
       
@@ -158,13 +172,13 @@ const ConfigContainer: React.FC<ConfigContainerProps> = ({ initialConfig, onConf
           Your presentation will use the following settings:
         </p>
         <ul className="config-list">
-          <li><strong>Slide Layout:</strong> {formatSlideLayout(config.slideLayout)}</li>
-          <li><strong>Theme:</strong> {formatTheme(config.theme)}</li>
-          <li><strong>Section Splitting:</strong> {formatSplitStrategy(config.splitSections)}</li>
-          <li><strong>Images:</strong> {config.includeImages ? 'Included' : 'Excluded'}</li>
-          {config.includeImages && config.imageOptions && (
+          <li><strong>Slide Layout:</strong> {formatSlideLayout(localConfig.slideLayout)}</li>
+          <li><strong>Theme:</strong> {formatTheme(localConfig.theme)}</li>
+          <li><strong>Section Splitting:</strong> {formatSplitStrategy(localConfig.splitSections)}</li>
+          <li><strong>Images:</strong> {localConfig.includeImages ? 'Included' : 'Excluded'}</li>
+          {localConfig.includeImages && localConfig.imageOptions && (
             <li className="nested-item">
-              <strong>Image Quality:</strong> {config.imageOptions.quality}%
+              <strong>Image Quality:</strong> {localConfig.imageOptions.quality}%
             </li>
           )}
         </ul>

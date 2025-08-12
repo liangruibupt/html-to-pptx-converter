@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useUpload, useUI } from '../../store/hooks';
 import './HtmlInput.css';
 
 // Maximum content size in bytes (5MB)
@@ -21,7 +22,8 @@ interface HtmlInputProps {
  */
 const HtmlInput: React.FC<HtmlInputProps> = ({ onContentAccepted, onError }) => {
   const [htmlContent, setHtmlContent] = useState<string>('');
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const upload = useUpload();
+  const ui = useUI();
 
   // Function to validate HTML content
   const validateHTML = (content: string): boolean => {
@@ -37,39 +39,45 @@ const HtmlInput: React.FC<HtmlInputProps> = ({ onContentAccepted, onError }) => 
 
   // Function to handle content submission
   const handleSubmit = useCallback(() => {
-    setIsProcessing(true);
+    upload.startUpload('direct');
     
     try {
       // Check if content is empty
       if (!htmlContent.trim()) {
-        onError('Please enter HTML content');
-        setIsProcessing(false);
+        const errorMessage = 'Please enter HTML content';
+        upload.uploadError([errorMessage]);
+        onError(errorMessage);
         return;
       }
       
       // Check content size
       const contentSize = new Blob([htmlContent]).size;
       if (contentSize > MAX_CONTENT_SIZE) {
-        onError(`Content size exceeds the maximum allowed size (${MAX_CONTENT_SIZE / (1024 * 1024)}MB)`);
-        setIsProcessing(false);
+        const errorMessage = `Content size exceeds the maximum allowed size (${MAX_CONTENT_SIZE / (1024 * 1024)}MB)`;
+        upload.uploadError([errorMessage]);
+        onError(errorMessage);
         return;
       }
       
       // Validate HTML content
       if (!validateHTML(htmlContent)) {
-        onError('The entered content does not appear to be valid HTML');
-        setIsProcessing(false);
+        const errorMessage = 'The entered content does not appear to be valid HTML';
+        upload.uploadError([errorMessage]);
+        onError(errorMessage);
         return;
       }
       
-      // Pass content to parent component
+      // Update state and notify parent
+      upload.uploadSuccess(htmlContent, 'direct', undefined, contentSize);
       onContentAccepted(htmlContent);
+      ui.addNotification('success', 'Content Added', 'HTML content added successfully');
     } catch (error) {
-      onError(`Error processing content: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setIsProcessing(false);
+      const errorMessage = `Error processing content: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      upload.uploadError([errorMessage]);
+      onError(errorMessage);
+      ui.addNotification('error', 'Processing Failed', errorMessage);
     }
-  }, [htmlContent, onContentAccepted, onError]);
+  }, [htmlContent, upload, ui, onContentAccepted, onError]);
 
   // Function to handle content change
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -132,7 +140,7 @@ const HtmlInput: React.FC<HtmlInputProps> = ({ onContentAccepted, onError }) => 
           type="button" 
           className="action-button secondary"
           onClick={insertExample}
-          disabled={isProcessing}
+          disabled={upload.isUploading}
         >
           Insert Example
         </button>
@@ -140,9 +148,9 @@ const HtmlInput: React.FC<HtmlInputProps> = ({ onContentAccepted, onError }) => 
           type="button" 
           className="action-button primary"
           onClick={handleSubmit}
-          disabled={isProcessing || !htmlContent.trim()}
+          disabled={upload.isUploading || !htmlContent.trim()}
         >
-          {isProcessing ? 'Processing...' : 'Use This HTML'}
+          {upload.isUploading ? 'Processing...' : 'Use This HTML'}
         </button>
       </div>
       

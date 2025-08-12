@@ -1,4 +1,5 @@
 import React from 'react';
+import { useConversion, useUI } from '../../store/hooks';
 import './ConversionProgress.css';
 
 /**
@@ -12,18 +13,16 @@ import './ConversionProgress.css';
  */
 
 export interface ConversionProgressProps {
-  /** Current progress percentage (0-100) */
-  progress: number;
-  /** Current conversion status */
-  status: 'idle' | 'started' | 'processing' | 'completed' | 'error' | 'cancelled';
-  /** Current step being processed */
-  currentStep: string;
-  /** Progress message */
-  message: string;
+  /** Current progress percentage (0-100) - optional, will use state if not provided */
+  progress?: number;
+  /** Current step being processed - optional, will use state if not provided */
+  currentStep?: string;
+  /** Progress message - optional, will use state if not provided */
+  message?: string;
+  /** Whether conversion is active - optional, will use state if not provided */
+  isActive?: boolean;
   /** List of all conversion steps */
   steps?: string[];
-  /** Current step index */
-  currentStepIndex?: number;
   /** Whether to show detailed step information */
   showSteps?: boolean;
   /** Whether the progress bar should be animated */
@@ -42,10 +41,10 @@ export interface ConversionProgressProps {
  * Displays a visual progress indicator for the conversion process
  */
 export const ConversionProgress: React.FC<ConversionProgressProps> = ({
-  progress,
-  status,
-  currentStep,
-  message,
+  progress: propProgress,
+  currentStep: propCurrentStep,
+  message: propMessage,
+  isActive: propIsActive,
   steps = [
     'Parsing HTML content',
     'Extracting content structure', 
@@ -54,13 +53,32 @@ export const ConversionProgress: React.FC<ConversionProgressProps> = ({
     'Generating PPTX file',
     'Finalizing conversion'
   ],
-  currentStepIndex = 0,
   showSteps = true,
   animated = true,
   className = '',
   onCancel,
   showCancel = false
 }) => {
+  const conversion = useConversion();
+  const ui = useUI();
+  
+  // Use props if provided, otherwise use state
+  const progress = propProgress !== undefined ? propProgress : conversion.progress;
+  const currentStep = propCurrentStep || conversion.currentStep;
+  const message = propMessage || conversion.message;
+  const isActive = propIsActive !== undefined ? propIsActive : conversion.isConverting;
+  const currentStepIndex = conversion.currentStepIndex;
+  
+  // Determine status based on conversion state
+  const getStatus = () => {
+    if (conversion.error) return 'error';
+    if (conversion.result && !conversion.isConverting) return 'completed';
+    if (conversion.isConverting) return 'processing';
+    if (conversion.jobId && !conversion.isConverting) return 'started';
+    return 'idle';
+  };
+  
+  const status = getStatus();
   // Determine the progress bar color based on status
   const getProgressColor = () => {
     switch (status) {

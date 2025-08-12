@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { useUpload, useUI } from '../../store/hooks';
 import './FileUpload.css';
 
 // Maximum file size in bytes (5MB)
@@ -24,7 +25,8 @@ interface FileUploadProps {
  */
 const FileUpload: React.FC<FileUploadProps> = ({ onFileAccepted, onError }) => {
   const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const upload = useUpload();
+  const ui = useUI();
 
   // Function to validate HTML content
   const validateHTML = (content: string): boolean => {
@@ -40,20 +42,22 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileAccepted, onError }) => {
 
   // Function to handle file reading
   const handleFileRead = useCallback(async (file: File) => {
-    setIsProcessing(true);
+    upload.startUpload('file');
     
     try {
       // Check file size
       if (file.size > MAX_FILE_SIZE) {
-        onError(`File size exceeds the maximum allowed size (${MAX_FILE_SIZE / (1024 * 1024)}MB)`);
-        setIsProcessing(false);
+        const errorMessage = `File size exceeds the maximum allowed size (${MAX_FILE_SIZE / (1024 * 1024)}MB)`;
+        upload.uploadError([errorMessage]);
+        onError(errorMessage);
         return;
       }
       
       // Check file type
       if (!file.type.includes('html') && !file.name.endsWith('.html') && !file.name.endsWith('.htm')) {
-        onError('Please upload a valid HTML file (.html or .htm)');
-        setIsProcessing(false);
+        const errorMessage = 'Please upload a valid HTML file (.html or .htm)';
+        upload.uploadError([errorMessage]);
+        onError(errorMessage);
         return;
       }
       
@@ -62,19 +66,23 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileAccepted, onError }) => {
       
       // Validate HTML content
       if (!validateHTML(content)) {
-        onError('The uploaded file does not contain valid HTML content');
-        setIsProcessing(false);
+        const errorMessage = 'The uploaded file does not contain valid HTML content';
+        upload.uploadError([errorMessage]);
+        onError(errorMessage);
         return;
       }
       
-      // Pass content to parent component
+      // Update state and notify parent
+      upload.uploadSuccess(content, 'file', file.name, file.size);
       onFileAccepted(content);
+      ui.addNotification('success', 'File Uploaded', `Successfully uploaded ${file.name}`);
     } catch (error) {
-      onError(`Error reading file: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setIsProcessing(false);
+      const errorMessage = `Error reading file: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      upload.uploadError([errorMessage]);
+      onError(errorMessage);
+      ui.addNotification('error', 'Upload Failed', errorMessage);
     }
-  }, [onFileAccepted, onError]);
+  }, [upload, ui, onFileAccepted, onError]);
 
   // Configure dropzone
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -106,11 +114,11 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileAccepted, onError }) => {
     <div className="file-upload-container">
       <div 
         {...getRootProps()} 
-        className={`dropzone ${isDragActive || isDragging ? 'active' : ''} ${isProcessing ? 'processing' : ''}`}
+        className={`dropzone ${isDragActive || isDragging ? 'active' : ''} ${upload.isUploading ? 'processing' : ''}`}
       >
         <input {...getInputProps()} data-testid="file-input" />
         
-        {isProcessing ? (
+        {upload.isUploading ? (
           <div className="upload-status">
             <div className="spinner"></div>
             <p>Processing file...</p>
