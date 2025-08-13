@@ -14,8 +14,10 @@ import {
   UploadSuccessAction,
   UploadErrorAction,
   SetHtmlContentAction,
+  UploadValidationErrorAction,
   UpdateConfigAction,
   SetConfigValidationErrorAction,
+  ConfigValidationErrorAction,
   PreviewStartAction,
   PreviewSuccessAction,
   PreviewErrorAction,
@@ -33,6 +35,13 @@ import {
   SetActiveSectionAction,
   AddNotificationAction,
   RemoveNotificationAction,
+  StartTransitionAction,
+  CompleteTransitionAction,
+  SetCanProceedAction,
+  SetCanGoBackAction,
+  StartValidationAction,
+  ValidationSuccessAction,
+  ValidationErrorAction,
   SimpleAction,
   Notification
 } from './types';
@@ -265,6 +274,81 @@ export const uiActions = {
 };
 
 /**
+ * State transition action creators
+ */
+export const transitionActions = {
+  startTransition: (fromPhase: AppPhase, toPhase: AppPhase, canCancel: boolean = true): StartTransitionAction => ({
+    type: ActionType.START_TRANSITION,
+    payload: { fromPhase, toPhase, canCancel }
+  }),
+
+  completeTransition: (phase: AppPhase): CompleteTransitionAction => ({
+    type: ActionType.COMPLETE_TRANSITION,
+    payload: { phase }
+  }),
+
+  cancelTransition: (): SimpleAction => ({
+    type: ActionType.CANCEL_TRANSITION
+  }),
+
+  setCanProceed: (canProceed: boolean): SetCanProceedAction => ({
+    type: ActionType.SET_CAN_PROCEED,
+    payload: { canProceed }
+  }),
+
+  setCanGoBack: (canGoBack: boolean): SetCanGoBackAction => ({
+    type: ActionType.SET_CAN_GO_BACK,
+    payload: { canGoBack }
+  })
+};
+
+/**
+ * Validation action creators
+ */
+export const validationActions = {
+  startValidation: (validationType: 'upload' | 'config' | 'preview'): StartValidationAction => ({
+    type: ActionType.START_VALIDATION,
+    payload: { validationType }
+  }),
+
+  validationSuccess: (validationType: 'upload' | 'config' | 'preview'): ValidationSuccessAction => ({
+    type: ActionType.VALIDATION_SUCCESS,
+    payload: { validationType }
+  }),
+
+  validationError: (validationType: 'upload' | 'config' | 'preview', errors: string[]): ValidationErrorAction => ({
+    type: ActionType.VALIDATION_ERROR,
+    payload: { validationType, errors }
+  }),
+
+  validateUpload: (): SimpleAction => ({
+    type: ActionType.VALIDATE_UPLOAD
+  }),
+
+  uploadValidationSuccess: (): SimpleAction => ({
+    type: ActionType.UPLOAD_VALIDATION_SUCCESS
+  }),
+
+  uploadValidationError: (errors: string[]): UploadValidationErrorAction => ({
+    type: ActionType.UPLOAD_VALIDATION_ERROR,
+    payload: { errors }
+  }),
+
+  validateConfig: (): SimpleAction => ({
+    type: ActionType.VALIDATE_CONFIG
+  }),
+
+  configValidationSuccess: (): SimpleAction => ({
+    type: ActionType.CONFIG_VALIDATION_SUCCESS
+  }),
+
+  configValidationError: (errors: Record<string, string>): ConfigValidationErrorAction => ({
+    type: ActionType.CONFIG_VALIDATION_ERROR,
+    payload: { errors }
+  })
+};
+
+/**
  * Global action creators
  */
 export const globalActions = {
@@ -278,11 +362,39 @@ export const globalActions = {
  */
 export const workflowActions = {
   /**
-   * Start the conversion workflow
+   * Transition to configuration phase
+   */
+  proceedToConfiguration: () => [
+    transitionActions.startTransition(AppPhase.UPLOAD, AppPhase.CONFIGURE),
+    transitionActions.completeTransition(AppPhase.CONFIGURE),
+    transitionActions.setCanGoBack(true)
+  ],
+
+  /**
+   * Transition to preview phase
+   */
+  proceedToPreview: () => [
+    transitionActions.startTransition(AppPhase.CONFIGURE, AppPhase.PREVIEW),
+    previewActions.start(),
+    transitionActions.setCanGoBack(true)
+  ],
+
+  /**
+   * Complete preview and enable conversion
+   */
+  completePreview: (parsedContent: any, sections: any[]) => [
+    previewActions.success(parsedContent, sections),
+    transitionActions.completeTransition(AppPhase.PREVIEW),
+    transitionActions.setCanProceed(true)
+  ],
+
+  /**
+   * Start the conversion workflow with validation
    */
   startConversion: (jobId: string) => [
+    transitionActions.startTransition(AppPhase.PREVIEW, AppPhase.CONVERTING, false),
     conversionActions.start(jobId),
-    uiActions.setPhase(AppPhase.CONVERTING),
+    transitionActions.completeTransition(AppPhase.CONVERTING),
     uiActions.clearMessages()
   ],
 
@@ -292,7 +404,7 @@ export const workflowActions = {
   completeConversion: (result: any, downloadResult: DownloadResult) => [
     conversionActions.success(result),
     downloadActions.available(downloadResult),
-    uiActions.setPhase(AppPhase.COMPLETED),
+    transitionActions.completeTransition(AppPhase.COMPLETED),
     uiActions.setSuccessMessage('Conversion completed successfully!')
   ],
 
@@ -301,19 +413,116 @@ export const workflowActions = {
    */
   failConversion: (error: ConversionError) => [
     conversionActions.error(error),
-    uiActions.setPhase(AppPhase.ERROR),
+    transitionActions.completeTransition(AppPhase.ERROR),
+    transitionActions.setCanGoBack(true),
     uiActions.setGlobalError(error.userMessage || error.message)
   ],
+
+  /**
+   * Go back to previous phase
+   */
+  goBack: (currentPhase: AppPhase) => {
+    switch (currentPhase) {
+      case AppPhase.CONFIGURE:
+        return [
+          transitionActions.startTransition(AppPhase.CONFIGURE, AppPhase.UPLOAD),
+          transitionActions.completeTransition(AppPhase.UPLOAD),
+          transitionActions.setCanGoBack(false)
+        ];
+      case AppPhase.PREVIEW:
+        return [
+          transitionActions.startTransition(AppPhase.PREVIEW, AppPhase.CONFIGURE),
+          transitionActions.completeTransition(AppPhase.CONFIGURE),
+          transitionActions.setCanProceed(true)
+        ];
+      case AppPhase.ERROR:
+        return [
+          transitionActions.startTransition(AppPhase.ERROR, AppPhase.CONFIGURE),
+          transitionActions.completeTransition(AppPhase.CONFIGURE),
+          uiActions.clearMessages()
+        ];
+      default:
+        return [];
+    }
+  },
 
   /**
    * Reset the entire application to start over
    */
   startOver: () => [
     globalActions.resetAll(),
-    uiActions.setPhase(AppPhase.UPLOAD),
+    transitionActions.completeTransition(AppPhase.UPLOAD),
+    transitionActions.setCanProceed(false),
+    transitionActions.setCanGoBack(false),
     uiActions.clearMessages(),
     uiActions.clearNotifications()
   ],
+
+  /**
+   * Validate upload content
+   */
+  validateUpload: (htmlContent: string) => {
+    const errors: string[] = [];
+    
+    if (!htmlContent || !htmlContent.trim()) {
+      errors.push('HTML content is required');
+    }
+    
+    if (htmlContent && htmlContent.length > 5 * 1024 * 1024) {
+      errors.push('HTML content is too large (max 5MB)');
+    }
+    
+    if (htmlContent && !/<[a-z][\s\S]*>/i.test(htmlContent)) {
+      errors.push('Content does not appear to be valid HTML');
+    }
+    
+    if (errors.length > 0) {
+      return [
+        validationActions.uploadValidationError(errors),
+        transitionActions.setCanProceed(false)
+      ];
+    } else {
+      return [
+        validationActions.uploadValidationSuccess(),
+        transitionActions.setCanProceed(true)
+      ];
+    }
+  },
+
+  /**
+   * Validate configuration
+   */
+  validateConfiguration: (config: ConversionConfig) => {
+    const errors: Record<string, string> = {};
+    
+    if (!config.slideLayout) {
+      errors.slideLayout = 'Slide layout is required';
+    }
+    
+    if (!config.theme) {
+      errors.theme = 'Theme selection is required';
+    }
+    
+    if (!config.splitSections) {
+      errors.splitSections = 'Section splitting strategy is required';
+    }
+    
+    if (config.splitSections === 'BY_CUSTOM_SELECTOR' && !config.customSectionSelector) {
+      errors.customSectionSelector = 'Custom selector is required when using custom splitting';
+    }
+    
+    if (Object.keys(errors).length > 0) {
+      return [
+        validationActions.configValidationError(errors),
+        transitionActions.setCanProceed(false)
+      ];
+    } else {
+      return [
+        validationActions.configValidationSuccess(),
+        transitionActions.setCanProceed(true)
+      ];
+    }
+  },
 
   /**
    * Show success notification
@@ -356,6 +565,8 @@ export const actions = {
   conversion: conversionActions,
   download: downloadActions,
   ui: uiActions,
+  transition: transitionActions,
+  validation: validationActions,
   global: globalActions,
   workflow: workflowActions
 };

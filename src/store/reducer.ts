@@ -13,6 +13,7 @@ import {
   AppAction, 
   ActionType, 
   AppPhase,
+  ValidationState,
   UploadState,
   ConfigurationState,
   PreviewState,
@@ -32,7 +33,9 @@ const initialUploadState: UploadState = {
   fileSize: null,
   uploadMethod: null,
   uploadedAt: null,
-  validationErrors: []
+  validationErrors: [],
+  validationState: ValidationState.IDLE,
+  isReady: false
 };
 
 /**
@@ -43,7 +46,9 @@ const initialConfigurationState: ConfigurationState = {
   isModified: false,
   validationErrors: {},
   availableThemes: ['DEFAULT', 'PROFESSIONAL', 'CREATIVE', 'MINIMAL'],
-  availableLayouts: ['STANDARD', 'WIDE', 'CUSTOM']
+  availableLayouts: ['STANDARD', 'WIDE', 'CUSTOM'],
+  validationState: ValidationState.VALID,
+  isReady: true
 };
 
 /**
@@ -93,7 +98,16 @@ const initialUIState: UIState = {
   successMessage: null,
   sidebarOpen: false,
   activeSection: 'upload',
-  notifications: []
+  notifications: [],
+  transition: {
+    isTransitioning: false,
+    previousPhase: null,
+    targetPhase: null,
+    transitionStartedAt: null,
+    canCancel: false
+  },
+  canProceed: false,
+  canGoBack: false
 };
 
 /**
@@ -150,6 +164,28 @@ function uploadReducer(state: UploadState, action: AppAction): UploadState {
         validationErrors: []
       };
 
+    case ActionType.VALIDATE_UPLOAD:
+      return {
+        ...state,
+        validationState: ValidationState.VALIDATING
+      };
+
+    case ActionType.UPLOAD_VALIDATION_SUCCESS:
+      return {
+        ...state,
+        validationState: ValidationState.VALID,
+        isReady: true,
+        validationErrors: []
+      };
+
+    case ActionType.UPLOAD_VALIDATION_ERROR:
+      return {
+        ...state,
+        validationState: ValidationState.INVALID,
+        isReady: false,
+        validationErrors: action.payload.errors
+      };
+
     case ActionType.UPLOAD_RESET:
       return initialUploadState;
 
@@ -194,6 +230,28 @@ function configurationReducer(state: ConfigurationState, action: AppAction): Con
       return {
         ...state,
         validationErrors: {}
+      };
+
+    case ActionType.VALIDATE_CONFIG:
+      return {
+        ...state,
+        validationState: ValidationState.VALIDATING
+      };
+
+    case ActionType.CONFIG_VALIDATION_SUCCESS:
+      return {
+        ...state,
+        validationState: ValidationState.VALID,
+        isReady: true,
+        validationErrors: {}
+      };
+
+    case ActionType.CONFIG_VALIDATION_ERROR:
+      return {
+        ...state,
+        validationState: ValidationState.INVALID,
+        isReady: false,
+        validationErrors: action.payload.errors
       };
 
     default:
@@ -403,6 +461,56 @@ function uiReducer(state: UIState, action: AppAction): UIState {
         notifications: []
       };
 
+    case ActionType.START_TRANSITION:
+      return {
+        ...state,
+        transition: {
+          isTransitioning: true,
+          previousPhase: action.payload.fromPhase,
+          targetPhase: action.payload.toPhase,
+          transitionStartedAt: new Date(),
+          canCancel: action.payload.canCancel
+        }
+      };
+
+    case ActionType.COMPLETE_TRANSITION:
+      return {
+        ...state,
+        currentPhase: action.payload.phase,
+        activeSection: action.payload.phase,
+        transition: {
+          isTransitioning: false,
+          previousPhase: state.currentPhase,
+          targetPhase: null,
+          transitionStartedAt: null,
+          canCancel: false
+        }
+      };
+
+    case ActionType.CANCEL_TRANSITION:
+      return {
+        ...state,
+        transition: {
+          isTransitioning: false,
+          previousPhase: null,
+          targetPhase: null,
+          transitionStartedAt: null,
+          canCancel: false
+        }
+      };
+
+    case ActionType.SET_CAN_PROCEED:
+      return {
+        ...state,
+        canProceed: action.payload.canProceed
+      };
+
+    case ActionType.SET_CAN_GO_BACK:
+      return {
+        ...state,
+        canGoBack: action.payload.canGoBack
+      };
+
     default:
       return state;
   }
@@ -442,41 +550,101 @@ export function appReducer(state: AppState, action: AppAction): AppState {
  */
 function handlePhaseTransitions(state: AppState, action: AppAction): AppState {
   let newPhase = state.ui.currentPhase;
+  let canProceed = state.ui.canProceed;
+  let canGoBack = state.ui.canGoBack;
 
   switch (action.type) {
     case ActionType.UPLOAD_SUCCESS:
     case ActionType.SET_HTML_CONTENT:
       if (state.ui.currentPhase === AppPhase.UPLOAD) {
         newPhase = AppPhase.CONFIGURE;
+        canProceed = state.configuration.isReady;
+        canGoBack = true;
+      }
+      break;
+
+    case ActionType.UPLOAD_VALIDATION_SUCCESS:
+      if (state.ui.currentPhase === AppPhase.UPLOAD) {
+        canProceed = true;
+      }
+      break;
+
+    case ActionType.UPLOAD_VALIDATION_ERROR:
+      if (state.ui.currentPhase === AppPhase.UPLOAD) {
+        canProceed = false;
+      }
+      break;
+
+    case ActionType.CONFIG_VALIDATION_SUCCESS:
+      if (state.ui.currentPhase === AppPhase.CONFIGURE) {
+        canProceed = state.upload.isReady;
+      }
+      break;
+
+    case ActionType.CONFIG_VALIDATION_ERROR:
+      if (state.ui.currentPhase === AppPhase.CONFIGURE) {
+        canProceed = false;
+      }
+      break;
+
+    case ActionType.PREVIEW_START:
+      if (state.ui.currentPhase === AppPhase.CONFIGURE) {
+        newPhase = AppPhase.PREVIEW;
+        canProceed = false;
+        canGoBack = true;
+      }
+      break;
+
+    case ActionType.PREVIEW_SUCCESS:
+      if (state.ui.currentPhase === AppPhase.PREVIEW) {
+        canProceed = true;
+      }
+      break;
+
+    case ActionType.PREVIEW_ERROR:
+      if (state.ui.currentPhase === AppPhase.PREVIEW) {
+        canProceed = false;
       }
       break;
 
     case ActionType.CONVERSION_START:
       newPhase = AppPhase.CONVERTING;
+      canProceed = false;
+      canGoBack = false;
       break;
 
     case ActionType.CONVERSION_SUCCESS:
       newPhase = AppPhase.COMPLETED;
+      canProceed = false;
+      canGoBack = false;
       break;
 
     case ActionType.CONVERSION_ERROR:
       newPhase = AppPhase.ERROR;
+      canProceed = false;
+      canGoBack = true;
       break;
 
     case ActionType.UPLOAD_RESET:
     case ActionType.RESET_ALL:
       newPhase = AppPhase.UPLOAD;
+      canProceed = false;
+      canGoBack = false;
       break;
   }
 
-  // Update phase if it changed
-  if (newPhase !== state.ui.currentPhase) {
+  // Update phase and navigation state if anything changed
+  if (newPhase !== state.ui.currentPhase || 
+      canProceed !== state.ui.canProceed || 
+      canGoBack !== state.ui.canGoBack) {
     return {
       ...state,
       ui: {
         ...state.ui,
         currentPhase: newPhase,
-        activeSection: newPhase
+        activeSection: newPhase,
+        canProceed,
+        canGoBack
       }
     };
   }

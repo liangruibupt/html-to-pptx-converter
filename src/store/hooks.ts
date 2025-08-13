@@ -10,7 +10,7 @@
 
 import { useSelector, useDispatch } from 'react-redux';
 import { useCallback, useEffect } from 'react';
-import { AppState, AppAction, AppPhase } from './types';
+import { AppState, AppAction, AppPhase, ValidationState } from './types';
 import { actions } from './actions';
 import { ConversionConfig } from '../models';
 
@@ -176,7 +176,7 @@ export const useConversion = () => {
     conversionSuccess,
     conversionError,
     reset,
-    canStart: Boolean(uploadState.htmlContent && configState.isValid),
+    canStart: Boolean(uploadState.htmlContent && configState.isReady),
     isActive: conversionState.isConverting,
     hasResult: Boolean(conversionState.result),
     hasError: Boolean(conversionState.error)
@@ -290,6 +290,93 @@ export const useUI = () => {
 };
 
 /**
+ * Hook for managing state transitions
+ */
+export const useTransitions = () => {
+  const dispatch = useAppDispatch();
+  const transitionState = useAppSelector(state => state.ui.transition);
+  const currentPhase = useAppSelector(state => state.ui.currentPhase);
+  const canProceed = useAppSelector(state => state.ui.canProceed);
+  const canGoBack = useAppSelector(state => state.ui.canGoBack);
+  
+  const startTransition = useCallback((fromPhase: AppPhase, toPhase: AppPhase, canCancel: boolean = true) => {
+    dispatch(actions.transition.startTransition(fromPhase, toPhase, canCancel));
+  }, [dispatch]);
+  
+  const completeTransition = useCallback((phase: AppPhase) => {
+    dispatch(actions.transition.completeTransition(phase));
+  }, [dispatch]);
+  
+  const cancelTransition = useCallback(() => {
+    dispatch(actions.transition.cancelTransition());
+  }, [dispatch]);
+  
+  const proceedToNext = useCallback(() => {
+    switch (currentPhase) {
+      case AppPhase.UPLOAD:
+        actions.workflow.proceedToConfiguration().forEach(action => dispatch(action));
+        break;
+      case AppPhase.CONFIGURE:
+        actions.workflow.proceedToPreview().forEach(action => dispatch(action));
+        break;
+      case AppPhase.PREVIEW:
+        // This would be handled by the conversion start
+        break;
+    }
+  }, [dispatch, currentPhase]);
+  
+  const goBack = useCallback(() => {
+    const backActions = actions.workflow.goBack(currentPhase);
+    backActions.forEach(action => dispatch(action));
+  }, [dispatch, currentPhase]);
+  
+  return {
+    transitionState,
+    currentPhase,
+    canProceed,
+    canGoBack,
+    startTransition,
+    completeTransition,
+    cancelTransition,
+    proceedToNext,
+    goBack
+  };
+};
+
+/**
+ * Hook for managing validation
+ */
+export const useValidation = () => {
+  const dispatch = useAppDispatch();
+  const uploadValidation = useAppSelector(state => state.upload.validationState);
+  const configValidation = useAppSelector(state => state.configuration.validationState);
+  
+  const validateUpload = useCallback((htmlContent: string) => {
+    const validationActions = actions.workflow.validateUpload(htmlContent);
+    validationActions.forEach(action => dispatch(action));
+  }, [dispatch]);
+  
+  const validateConfiguration = useCallback((config: ConversionConfig) => {
+    const validationActions = actions.workflow.validateConfiguration(config);
+    validationActions.forEach(action => dispatch(action));
+  }, [dispatch]);
+  
+  const startValidation = useCallback((type: 'upload' | 'config' | 'preview') => {
+    dispatch(actions.validation.startValidation(type));
+  }, [dispatch]);
+  
+  return {
+    uploadValidation,
+    configValidation,
+    validateUpload,
+    validateConfiguration,
+    startValidation,
+    isValid: uploadValidation === 'valid' && configValidation === 'valid',
+    isValidating: uploadValidation === 'validating' || configValidation === 'validating'
+  };
+};
+
+/**
  * Hook for managing global application actions
  */
 export const useGlobalActions = () => {
@@ -362,6 +449,8 @@ export const useAppState = () => {
   const conversion = useConversion();
   const download = useDownload();
   const ui = useUI();
+  const transitions = useTransitions();
+  const validation = useValidation();
   const globalActions = useGlobalActions();
   
   return {
@@ -371,6 +460,8 @@ export const useAppState = () => {
     conversion,
     download,
     ui,
+    transitions,
+    validation,
     globalActions
   };
 };

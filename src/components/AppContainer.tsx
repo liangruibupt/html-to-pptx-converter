@@ -21,7 +21,7 @@ import './AppContainer.css';
  * - 5.3: Adapt the interface to different screen sizes
  */
 const AppContainer: React.FC = () => {
-  const { upload, configuration, preview, conversion, download, ui, globalActions } = useAppState();
+  const { upload, configuration, preview, conversion, download, ui, transitions, validation, globalActions } = useAppState();
   const status = useAppStatus();
   
   // Auto-dismiss notifications
@@ -30,7 +30,7 @@ const AppContainer: React.FC = () => {
   // Handle file upload success
   const handleFileUploadSuccess = (content: string) => {
     upload.setContent(content, 'file');
-    ui.setPhase(AppPhase.CONFIGURE);
+    validation.validateUpload(content);
     ui.setSuccessMessage('HTML file uploaded successfully!');
   };
   
@@ -43,7 +43,7 @@ const AppContainer: React.FC = () => {
   // Handle HTML input success
   const handleHtmlInputSuccess = (content: string) => {
     upload.setContent(content, 'direct');
-    ui.setPhase(AppPhase.CONFIGURE);
+    validation.validateUpload(content);
     ui.setSuccessMessage('HTML content added successfully!');
   };
   
@@ -56,11 +56,26 @@ const AppContainer: React.FC = () => {
   // Handle configuration changes
   const handleConfigChange = (config: any) => {
     configuration.updateConfig(config);
+    validation.validateConfiguration({ ...configuration.config, ...config });
+  };
+  
+  // Handle proceed to next step
+  const handleProceedToNext = () => {
+    if (transitions.canProceed) {
+      transitions.proceedToNext();
+    }
+  };
+  
+  // Handle go back to previous step
+  const handleGoBack = () => {
+    if (transitions.canGoBack) {
+      transitions.goBack();
+    }
   };
   
   // Handle start conversion
   const handleStartConversion = () => {
-    if (upload.htmlContent && configuration.isValid) {
+    if (upload.htmlContent && validation.isValid) {
       const jobId = `conversion-${Date.now()}`;
       globalActions.startConversionWorkflow(jobId);
     }
@@ -111,16 +126,17 @@ const AppContainer: React.FC = () => {
                 <div className="configure-actions">
                   <button
                     className="action-button secondary"
-                    onClick={handleStartOver}
+                    onClick={handleGoBack}
+                    disabled={!transitions.canGoBack}
                   >
-                    Start Over
+                    Back
                   </button>
                   <button
                     className="action-button primary"
-                    onClick={handleStartConversion}
-                    disabled={!configuration.isValid || !upload.htmlContent}
+                    onClick={handleProceedToNext}
+                    disabled={!transitions.canProceed}
                   >
-                    Start Conversion
+                    Preview
                   </button>
                 </div>
               </div>
@@ -131,6 +147,64 @@ const AppContainer: React.FC = () => {
                     maxHeight={400}
                   />
                 )}
+              </div>
+            </div>
+          </div>
+        );
+        
+      case AppPhase.PREVIEW:
+        return (
+          <div className="preview-phase">
+            <div className="preview-content">
+              <div className="preview-main">
+                <h2>Preview Your Content</h2>
+                <p>Review how your HTML content will be converted to slides:</p>
+                {upload.htmlContent && (
+                  <HtmlPreview
+                    htmlContent={upload.htmlContent}
+                    maxHeight={500}
+                  />
+                )}
+                {preview.errors.length > 0 && (
+                  <div className="preview-errors">
+                    <h3>Preview Issues:</h3>
+                    <ul>
+                      {preview.errors.map((error, index) => (
+                        <li key={index}>{error}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+              <div className="preview-actions">
+                <button
+                  className="action-button secondary"
+                  onClick={handleGoBack}
+                  disabled={!transitions.canGoBack}
+                >
+                  Back to Configuration
+                </button>
+                <button
+                  className="action-button primary"
+                  onClick={handleStartConversion}
+                  disabled={!transitions.canProceed || preview.errors.length > 0}
+                >
+                  Start Conversion
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+        
+      case AppPhase.VALIDATING:
+        return (
+          <div className="validating-phase">
+            <div className="validation-content">
+              <h2>Validating Content</h2>
+              <p>Please wait while we validate your content and configuration...</p>
+              <div className="validation-progress">
+                <div className="spinner"></div>
+                <p>Validation in progress...</p>
               </div>
             </div>
           </div>

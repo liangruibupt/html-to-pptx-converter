@@ -38,7 +38,9 @@ function createInitialState(): AppState {
     fileSize: null,
     uploadMethod: null,
     uploadedAt: null,
-    validationErrors: []
+    validationErrors: [],
+    validationState: 'idle' as any,
+    isReady: false
   };
 
   const initialConfigurationState: ConfigurationState = {
@@ -46,7 +48,9 @@ function createInitialState(): AppState {
     isModified: false,
     validationErrors: {},
     availableThemes: ['DEFAULT', 'PROFESSIONAL', 'CREATIVE', 'MINIMAL'],
-    availableLayouts: ['STANDARD', 'WIDE', 'CUSTOM']
+    availableLayouts: ['STANDARD', 'WIDE', 'CUSTOM'],
+    validationState: 'valid' as any,
+    isReady: true
   };
 
   const initialPreviewState: PreviewState = {
@@ -84,7 +88,16 @@ function createInitialState(): AppState {
     successMessage: null,
     sidebarOpen: false,
     activeSection: 'upload',
-    notifications: []
+    notifications: [],
+    transition: {
+      isTransitioning: false,
+      previousPhase: null,
+      targetPhase: null,
+      transitionStartedAt: null,
+      canCancel: false
+    },
+    canProceed: false,
+    canGoBack: false
   };
 
   return {

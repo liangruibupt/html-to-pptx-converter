@@ -21,9 +21,36 @@ export enum AppPhase {
   UPLOAD = 'upload',
   CONFIGURE = 'configure',
   PREVIEW = 'preview',
+  VALIDATING = 'validating',
   CONVERTING = 'converting',
   COMPLETED = 'completed',
   ERROR = 'error'
+}
+
+/**
+ * Validation state for different stages of the application
+ */
+export enum ValidationState {
+  IDLE = 'idle',
+  VALIDATING = 'validating',
+  VALID = 'valid',
+  INVALID = 'invalid'
+}
+
+/**
+ * Transition state for managing state changes
+ */
+export interface TransitionState {
+  /** Whether a transition is in progress */
+  isTransitioning: boolean;
+  /** Previous phase before transition */
+  previousPhase: AppPhase | null;
+  /** Target phase for transition */
+  targetPhase: AppPhase | null;
+  /** Transition start time */
+  transitionStartedAt: Date | null;
+  /** Whether transition can be cancelled */
+  canCancel: boolean;
 }
 
 /**
@@ -44,6 +71,10 @@ export interface UploadState {
   uploadedAt: Date | null;
   /** Upload validation errors */
   validationErrors: string[];
+  /** Current validation state */
+  validationState: ValidationState;
+  /** Whether content is ready for next step */
+  isReady: boolean;
 }
 
 /**
@@ -60,6 +91,10 @@ export interface ConfigurationState {
   availableThemes: string[];
   /** Available layouts */
   availableLayouts: string[];
+  /** Current validation state */
+  validationState: ValidationState;
+  /** Whether configuration is ready for conversion */
+  isReady: boolean;
 }
 
 /**
@@ -136,6 +171,12 @@ export interface UIState {
   activeSection: string;
   /** Toast notifications */
   notifications: Notification[];
+  /** Transition state */
+  transition: TransitionState;
+  /** Whether user can proceed to next step */
+  canProceed: boolean;
+  /** Whether user can go back to previous step */
+  canGoBack: boolean;
 }
 
 /**
@@ -186,12 +227,18 @@ export enum ActionType {
   UPLOAD_ERROR = 'UPLOAD_ERROR',
   UPLOAD_RESET = 'UPLOAD_RESET',
   SET_HTML_CONTENT = 'SET_HTML_CONTENT',
+  VALIDATE_UPLOAD = 'VALIDATE_UPLOAD',
+  UPLOAD_VALIDATION_SUCCESS = 'UPLOAD_VALIDATION_SUCCESS',
+  UPLOAD_VALIDATION_ERROR = 'UPLOAD_VALIDATION_ERROR',
   
   // Configuration actions
   UPDATE_CONFIG = 'UPDATE_CONFIG',
   RESET_CONFIG = 'RESET_CONFIG',
   SET_CONFIG_VALIDATION_ERROR = 'SET_CONFIG_VALIDATION_ERROR',
   CLEAR_CONFIG_VALIDATION_ERRORS = 'CLEAR_CONFIG_VALIDATION_ERRORS',
+  VALIDATE_CONFIG = 'VALIDATE_CONFIG',
+  CONFIG_VALIDATION_SUCCESS = 'CONFIG_VALIDATION_SUCCESS',
+  CONFIG_VALIDATION_ERROR = 'CONFIG_VALIDATION_ERROR',
   
   // Preview actions
   PREVIEW_START = 'PREVIEW_START',
@@ -223,6 +270,18 @@ export enum ActionType {
   ADD_NOTIFICATION = 'ADD_NOTIFICATION',
   REMOVE_NOTIFICATION = 'REMOVE_NOTIFICATION',
   CLEAR_NOTIFICATIONS = 'CLEAR_NOTIFICATIONS',
+  
+  // State transition actions
+  START_TRANSITION = 'START_TRANSITION',
+  COMPLETE_TRANSITION = 'COMPLETE_TRANSITION',
+  CANCEL_TRANSITION = 'CANCEL_TRANSITION',
+  SET_CAN_PROCEED = 'SET_CAN_PROCEED',
+  SET_CAN_GO_BACK = 'SET_CAN_GO_BACK',
+  
+  // Validation actions
+  START_VALIDATION = 'START_VALIDATION',
+  VALIDATION_SUCCESS = 'VALIDATION_SUCCESS',
+  VALIDATION_ERROR = 'VALIDATION_ERROR',
   
   // Global actions
   RESET_ALL = 'RESET_ALL'
@@ -424,6 +483,104 @@ export interface RemoveNotificationAction extends BaseAction {
 }
 
 /**
+ * State transition actions
+ */
+export interface StartTransitionAction extends BaseAction {
+  type: ActionType.START_TRANSITION;
+  payload: {
+    fromPhase: AppPhase;
+    toPhase: AppPhase;
+    canCancel: boolean;
+  };
+}
+
+export interface CompleteTransitionAction extends BaseAction {
+  type: ActionType.COMPLETE_TRANSITION;
+  payload: {
+    phase: AppPhase;
+  };
+}
+
+export interface CancelTransitionAction extends BaseAction {
+  type: ActionType.CANCEL_TRANSITION;
+}
+
+export interface SetCanProceedAction extends BaseAction {
+  type: ActionType.SET_CAN_PROCEED;
+  payload: {
+    canProceed: boolean;
+  };
+}
+
+export interface SetCanGoBackAction extends BaseAction {
+  type: ActionType.SET_CAN_GO_BACK;
+  payload: {
+    canGoBack: boolean;
+  };
+}
+
+/**
+ * Validation actions
+ */
+export interface StartValidationAction extends BaseAction {
+  type: ActionType.START_VALIDATION;
+  payload: {
+    validationType: 'upload' | 'config' | 'preview';
+  };
+}
+
+export interface ValidationSuccessAction extends BaseAction {
+  type: ActionType.VALIDATION_SUCCESS;
+  payload: {
+    validationType: 'upload' | 'config' | 'preview';
+  };
+}
+
+export interface ValidationErrorAction extends BaseAction {
+  type: ActionType.VALIDATION_ERROR;
+  payload: {
+    validationType: 'upload' | 'config' | 'preview';
+    errors: string[];
+  };
+}
+
+/**
+ * Upload validation actions
+ */
+export interface ValidateUploadAction extends BaseAction {
+  type: ActionType.VALIDATE_UPLOAD;
+}
+
+export interface UploadValidationSuccessAction extends BaseAction {
+  type: ActionType.UPLOAD_VALIDATION_SUCCESS;
+}
+
+export interface UploadValidationErrorAction extends BaseAction {
+  type: ActionType.UPLOAD_VALIDATION_ERROR;
+  payload: {
+    errors: string[];
+  };
+}
+
+/**
+ * Configuration validation actions
+ */
+export interface ValidateConfigAction extends BaseAction {
+  type: ActionType.VALIDATE_CONFIG;
+}
+
+export interface ConfigValidationSuccessAction extends BaseAction {
+  type: ActionType.CONFIG_VALIDATION_SUCCESS;
+}
+
+export interface ConfigValidationErrorAction extends BaseAction {
+  type: ActionType.CONFIG_VALIDATION_ERROR;
+  payload: {
+    errors: Record<string, string>;
+  };
+}
+
+/**
  * Simple actions (no payload)
  */
 export interface SimpleAction extends BaseAction {
@@ -436,6 +593,11 @@ export interface SimpleAction extends BaseAction {
         ActionType.CLEAR_MESSAGES |
         ActionType.TOGGLE_SIDEBAR |
         ActionType.CLEAR_NOTIFICATIONS |
+        ActionType.VALIDATE_UPLOAD |
+        ActionType.UPLOAD_VALIDATION_SUCCESS |
+        ActionType.VALIDATE_CONFIG |
+        ActionType.CONFIG_VALIDATION_SUCCESS |
+        ActionType.CANCEL_TRANSITION |
         ActionType.RESET_ALL;
 }
 
@@ -447,8 +609,14 @@ export type AppAction =
   | UploadSuccessAction
   | UploadErrorAction
   | SetHtmlContentAction
+  | ValidateUploadAction
+  | UploadValidationSuccessAction
+  | UploadValidationErrorAction
   | UpdateConfigAction
   | SetConfigValidationErrorAction
+  | ValidateConfigAction
+  | ConfigValidationSuccessAction
+  | ConfigValidationErrorAction
   | PreviewStartAction
   | PreviewSuccessAction
   | PreviewErrorAction
@@ -466,4 +634,12 @@ export type AppAction =
   | SetActiveSectionAction
   | AddNotificationAction
   | RemoveNotificationAction
+  | StartTransitionAction
+  | CompleteTransitionAction
+  | CancelTransitionAction
+  | SetCanProceedAction
+  | SetCanGoBackAction
+  | StartValidationAction
+  | ValidationSuccessAction
+  | ValidationErrorAction
   | SimpleAction;
