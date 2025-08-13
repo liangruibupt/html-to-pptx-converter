@@ -519,7 +519,7 @@ function uiReducer(state: UIState, action: AppAction): UIState {
 /**
  * Main application reducer
  */
-export function appReducer(state: AppState, action: AppAction): AppState {
+export function appReducer(state: AppState = initialState, action: AppAction): AppState {
   // Handle global reset
   if (action.type === ActionType.RESET_ALL) {
     return initialState;

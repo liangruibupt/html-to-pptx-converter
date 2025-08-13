@@ -15,7 +15,7 @@ import { actions } from './actions';
 import { ConversionConfig } from '../models';
 
 // Basic Redux hooks with TypeScript support
-export const useAppDispatch = () => useDispatch<React.Dispatch<AppAction>>();
+export const useAppDispatch = () => useDispatch<any>();
 export const useAppSelector = <T>(selector: (state: AppState) => T) => useSelector(selector);
 
 /**

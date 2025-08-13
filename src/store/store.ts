@@ -152,8 +152,8 @@ export const storeUtils = {
 
 // Make store utilities available globally in development
 if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
-  window.storeUtils = storeUtils;
-  window.store = store;
+  (window as any).storeUtils = storeUtils;
+  (window as any).store = store;
   
   // Log store initialization
   console.log('🏪 Redux store initialized for HTML to PPTX Converter');
