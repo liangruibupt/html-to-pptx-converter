@@ -3,12 +3,14 @@
  */
 
 export { ErrorHandler } from './ErrorHandler';
-export {
+export type {
   ErrorHandlerService,
   ConversionError,
+  ErrorContext
+} from './ErrorHandlerInterface';
+export {
   ErrorSeverity,
   ErrorCategory,
-  ErrorContext,
   ConversionProcessError,
   HTMLParsingError,
   PptxGenerationError,

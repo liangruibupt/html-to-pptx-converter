@@ -70,7 +70,8 @@ export class ErrorHandler implements ErrorHandlerService {
    * @returns User-friendly error message with suggestions
    */
   createUserFriendlyMessage(error: ConversionError | Error, context?: ErrorContext): string {
-    if (error instanceof ConversionError) {
+    // Check if it's a ConversionError interface (has the required properties)
+    if (this.isConversionError(error)) {
       return this.formatUserMessage(error);
     }
     
@@ -489,6 +490,23 @@ export class ErrorHandler implements ErrorHandlerService {
     }
   }
   
+  /**
+   * Check if an error is a ConversionError interface
+   * 
+   * @private
+   * @param error - The error to check
+   * @returns True if the error has ConversionError properties
+   */
+  private isConversionError(error: any): error is ConversionError {
+    return error && 
+           typeof error === 'object' &&
+           'id' in error &&
+           'code' in error &&
+           'userMessage' in error &&
+           'severity' in error &&
+           'category' in error;
+  }
+
   /**
    * Simple hash function for strings
    * 

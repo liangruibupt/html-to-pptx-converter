@@ -1,5 +1,4 @@
 import { HTMLContent, ConversionConfig, Section } from '../../models';
-import { SlideCreationError } from '../error/ErrorHandlerInterface';
 
 /**
  * Interface for the slide creator service

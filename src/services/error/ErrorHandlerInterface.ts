@@ -77,10 +77,11 @@ export interface ErrorHandlerService {
   /**
    * Create a user-friendly error message
    * 
-   * @param error - The conversion error
+   * @param error - The conversion error or original error
+   * @param context - Context information (optional)
    * @returns User-friendly error message with suggestions
    */
-  createUserFriendlyMessage(error: ConversionError): string;
+  createUserFriendlyMessage(error: ConversionError | Error, context?: ErrorContext): string;
   
   /**
    * Determine if an error is recoverable

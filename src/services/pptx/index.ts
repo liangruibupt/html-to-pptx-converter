@@ -1,2 +1,3 @@
 export { PptxGenerator } from './PptxGenerator';
-export { PptxGeneratorService, PptxGenerationError } from './PptxGeneratorInterface';
+export type { PptxGeneratorService } from './PptxGeneratorInterface';
+export { PptxGenerationError } from './PptxGeneratorInterface';

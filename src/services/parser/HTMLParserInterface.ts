@@ -1,5 +1,4 @@
 import { HTMLContent } from '../../models';
-import { HTMLParsingError } from '../error/ErrorHandlerInterface';
 
 /**
  * Interface for the HTML parser service

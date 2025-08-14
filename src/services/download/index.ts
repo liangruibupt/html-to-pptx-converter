@@ -4,10 +4,12 @@
 
 export { DownloadService } from './DownloadService';
 export { DownloadErrorHandler } from './DownloadErrorHandler';
-export {
+export type {
   DownloadService as DownloadServiceInterface,
   DownloadOptions,
   DownloadResult,
-  FileInfo,
+  FileInfo
+} from './DownloadServiceInterface';
+export {
   DownloadError
 } from './DownloadServiceInterface';

@@ -83,12 +83,14 @@ export interface TableResource {
   headers: string[];
   rows: any[][];
   style?: Record<string, any>;
+  _formattedData?: any; // Internal property for PptxGenerator
 }
 
 export interface ListResource {
   items: string[];
   ordered: boolean;
   style?: Record<string, any>;
+  _formattedItems?: any; // Internal property for PptxGenerator
 }
 
 export interface LinkResource {
