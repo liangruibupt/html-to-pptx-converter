@@ -1,5 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useUpload, useUI } from '../../store/hooks';
+import { ValidationService } from '../../services/validation';
+import { ValidationErrorDisplay } from '../validation';
 import './HtmlInput.css';
 
 // Maximum content size in bytes (5MB)
@@ -22,50 +24,36 @@ interface HtmlInputProps {
  */
 const HtmlInput: React.FC<HtmlInputProps> = ({ onContentAccepted, onError }) => {
   const [htmlContent, setHtmlContent] = useState<string>('');
+  const [validationResult, setValidationResult] = useState<any>(null);
   const upload = useUpload();
   const ui = useUI();
+  const validationService = new ValidationService();
 
-  // Function to validate HTML content
-  const validateHTML = (content: string): boolean => {
-    // Basic validation - check if content contains HTML tags
-    const hasHtmlTags = /<[a-z][\s\S]*>/i.test(content);
-    
-    // Check for basic HTML structure
-    const hasHtmlStructure = /<html[\s\S]*>[\s\S]*<\/html>/i.test(content) || 
-                            /<body[\s\S]*>[\s\S]*<\/body>/i.test(content);
-    
-    return hasHtmlTags || hasHtmlStructure;
-  };
+
 
   // Function to handle content submission
   const handleSubmit = useCallback(() => {
     upload.startUpload('direct');
+    setValidationResult(null);
     
     try {
-      // Check if content is empty
-      if (!htmlContent.trim()) {
-        const errorMessage = 'Please enter HTML content';
-        upload.uploadError([errorMessage]);
-        onError(errorMessage);
-        return;
-      }
-      
-      // Check content size
-      const contentSize = new Blob([htmlContent]).size;
-      if (contentSize > MAX_CONTENT_SIZE) {
-        const errorMessage = `Content size exceeds the maximum allowed size (${MAX_CONTENT_SIZE / (1024 * 1024)}MB)`;
-        upload.uploadError([errorMessage]);
-        onError(errorMessage);
-        return;
-      }
-      
       // Validate HTML content
-      if (!validateHTML(htmlContent)) {
-        const errorMessage = 'The entered content does not appear to be valid HTML';
-        upload.uploadError([errorMessage]);
-        onError(errorMessage);
+      const htmlValidation = validationService.validateHTML(htmlContent, { maxSize: MAX_CONTENT_SIZE });
+      if (!htmlValidation.isValid) {
+        setValidationResult(htmlValidation);
+        upload.uploadError(htmlValidation.errors);
+        onError(validationService.getValidationErrorMessage(htmlValidation));
         return;
       }
+      
+      // Show warnings if any
+      if (htmlValidation.warnings.length > 0) {
+        setValidationResult(htmlValidation);
+        ui.addNotification('warning', 'Validation Warnings', `Content added with ${htmlValidation.warnings.length} warning(s)`);
+      }
+      
+      // Calculate content size
+      const contentSize = new Blob([htmlContent]).size;
       
       // Update state and notify parent
       upload.uploadSuccess(htmlContent, 'direct', undefined, contentSize);
@@ -77,11 +65,15 @@ const HtmlInput: React.FC<HtmlInputProps> = ({ onContentAccepted, onError }) => 
       onError(errorMessage);
       ui.addNotification('error', 'Processing Failed', errorMessage);
     }
-  }, [htmlContent, upload, ui, onContentAccepted, onError]);
+  }, [htmlContent, upload, ui, onContentAccepted, onError, validationService]);
 
   // Function to handle content change
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setHtmlContent(e.target.value);
+    // Clear validation result when content changes
+    if (validationResult) {
+      setValidationResult(null);
+    }
   };
 
   // Function to handle example insertion
@@ -158,6 +150,13 @@ const HtmlInput: React.FC<HtmlInputProps> = ({ onContentAccepted, onError }) => 
         <p>Enter valid HTML content up to {MAX_CONTENT_SIZE / (1024 * 1024)}MB in size.</p>
         <p>The content should include HTML tags for proper conversion to PowerPoint.</p>
       </div>
+      
+      {validationResult && (
+        <ValidationErrorDisplay 
+          result={validationResult} 
+          options={{ showWarnings: true, showSuggestions: true }}
+        />
+      )}
     </div>
   );
 };

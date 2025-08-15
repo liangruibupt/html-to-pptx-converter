@@ -1,6 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useUpload, useUI } from '../../store/hooks';
+import { ValidationService } from '../../services/validation';
+import { ValidationErrorDisplay } from '../validation';
 import './FileUpload.css';
 
 // Maximum file size in bytes (5MB)
@@ -25,39 +27,25 @@ interface FileUploadProps {
  */
 const FileUpload: React.FC<FileUploadProps> = ({ onFileAccepted, onError }) => {
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [validationResult, setValidationResult] = useState<any>(null);
   const upload = useUpload();
   const ui = useUI();
+  const validationService = new ValidationService();
 
-  // Function to validate HTML content
-  const validateHTML = (content: string): boolean => {
-    // Basic validation - check if content contains HTML tags
-    const hasHtmlTags = /<[a-z][\s\S]*>/i.test(content);
-    
-    // Check for basic HTML structure
-    const hasHtmlStructure = /<html[\s\S]*>[\s\S]*<\/html>/i.test(content) || 
-                            /<body[\s\S]*>[\s\S]*<\/body>/i.test(content);
-    
-    return hasHtmlTags || hasHtmlStructure;
-  };
+
 
   // Function to handle file reading
   const handleFileRead = useCallback(async (file: File) => {
     upload.startUpload('file');
+    setValidationResult(null);
     
     try {
-      // Check file size
-      if (file.size > MAX_FILE_SIZE) {
-        const errorMessage = `File size exceeds the maximum allowed size (${MAX_FILE_SIZE / (1024 * 1024)}MB)`;
-        upload.uploadError([errorMessage]);
-        onError(errorMessage);
-        return;
-      }
-      
-      // Check file type
-      if (!file.type.includes('html') && !file.name.endsWith('.html') && !file.name.endsWith('.htm')) {
-        const errorMessage = 'Please upload a valid HTML file (.html or .htm)';
-        upload.uploadError([errorMessage]);
-        onError(errorMessage);
+      // Validate file first
+      const fileValidation = validationService.validateFileUpload(file, MAX_FILE_SIZE);
+      if (!fileValidation.isValid) {
+        setValidationResult(fileValidation);
+        upload.uploadError(fileValidation.errors);
+        onError(validationService.getValidationErrorMessage(fileValidation));
         return;
       }
       
@@ -65,11 +53,18 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileAccepted, onError }) => {
       const content = await file.text();
       
       // Validate HTML content
-      if (!validateHTML(content)) {
-        const errorMessage = 'The uploaded file does not contain valid HTML content';
-        upload.uploadError([errorMessage]);
-        onError(errorMessage);
+      const htmlValidation = validationService.validateHTML(content, { maxSize: MAX_FILE_SIZE });
+      if (!htmlValidation.isValid) {
+        setValidationResult(htmlValidation);
+        upload.uploadError(htmlValidation.errors);
+        onError(validationService.getValidationErrorMessage(htmlValidation));
         return;
+      }
+      
+      // Show warnings if any
+      if (htmlValidation.warnings.length > 0) {
+        setValidationResult(htmlValidation);
+        ui.addNotification('warning', 'Validation Warnings', `File uploaded with ${htmlValidation.warnings.length} warning(s)`);
       }
       
       // Update state and notify parent
@@ -82,7 +77,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileAccepted, onError }) => {
       onError(errorMessage);
       ui.addNotification('error', 'Upload Failed', errorMessage);
     }
-  }, [upload, ui, onFileAccepted, onError]);
+  }, [upload, ui, onFileAccepted, onError, validationService]);
 
   // Configure dropzone
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -144,6 +139,13 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileAccepted, onError }) => {
           </div>
         )}
       </div>
+      
+      {validationResult && (
+        <ValidationErrorDisplay 
+          result={validationResult} 
+          options={{ showWarnings: true, showSuggestions: true }}
+        />
+      )}
     </div>
   );
 };
