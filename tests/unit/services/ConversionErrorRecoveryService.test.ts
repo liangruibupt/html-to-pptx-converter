@@ -1,17 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ConversionErrorRecoveryService } from '../../../src/services/conversion/ConversionErrorRecovery';
-import { conversionOrchestrator } from '../../../src/services/ConversionOrchestrator.js';
 
-// Mock the ConversionOrchestrator
-vi.mock('../../../src/services/ConversionOrchestrator.js', () => ({
-  conversionOrchestrator: {
-    getRecoveryOptions: vi.fn(),
-    attemptAutoRecovery: vi.fn(),
-    retryConversionWithRecovery: vi.fn()
-  }
-}));
-
-const mockConversionOrchestrator = vi.mocked(conversionOrchestrator);
+// Create a mock orchestrator
+const mockOrchestrator = {
+  getRecoveryOptions: vi.fn(),
+  attemptAutoRecovery: vi.fn(),
+  retryConversionWithRecovery: vi.fn()
+};
 
 describe('ConversionErrorRecoveryService', () => {
   let service: ConversionErrorRecoveryService;
@@ -19,6 +14,7 @@ describe('ConversionErrorRecoveryService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     service = new ConversionErrorRecoveryService();
+    service.setOrchestrator(mockOrchestrator);
   });
 
   describe('getRecoveryOptions', () => {
@@ -39,16 +35,16 @@ describe('ConversionErrorRecoveryService', () => {
         suggestions: ['Test suggestion']
       };
 
-      mockConversionOrchestrator.getRecoveryOptions.mockReturnValue(mockOptions);
+      mockOrchestrator.getRecoveryOptions.mockReturnValue(mockOptions);
 
       const result = service.getRecoveryOptions('test-job-123');
 
-      expect(mockConversionOrchestrator.getRecoveryOptions).toHaveBeenCalledWith('test-job-123');
+      expect(mockOrchestrator.getRecoveryOptions).toHaveBeenCalledWith('test-job-123');
       expect(result).toEqual(mockOptions);
     });
 
     it('handles orchestrator errors', () => {
-      mockConversionOrchestrator.getRecoveryOptions.mockReturnValue({
+      mockOrchestrator.getRecoveryOptions.mockReturnValue({
         error: 'Job not found'
       });
 
@@ -64,7 +60,7 @@ describe('ConversionErrorRecoveryService', () => {
     });
 
     it('handles exceptions', () => {
-      mockConversionOrchestrator.getRecoveryOptions.mockImplementation(() => {
+      mockOrchestrator.getRecoveryOptions.mockImplementation(() => {
         throw new Error('Network error');
       });
 
@@ -78,6 +74,20 @@ describe('ConversionErrorRecoveryService', () => {
         error: 'Network error'
       });
     });
+
+    it('handles missing orchestrator', () => {
+      const serviceWithoutOrchestrator = new ConversionErrorRecoveryService();
+      
+      const result = serviceWithoutOrchestrator.getRecoveryOptions('test-job-123');
+
+      expect(result).toEqual({
+        canRecover: false,
+        autoRecoveryAvailable: false,
+        options: [],
+        suggestions: [],
+        error: 'Orchestrator not available'
+      });
+    });
   });
 
   describe('attemptAutoRecovery', () => {
@@ -87,11 +97,11 @@ describe('ConversionErrorRecoveryService', () => {
         status: 'started'
       };
 
-      mockConversionOrchestrator.attemptAutoRecovery.mockResolvedValue(mockResult);
+      mockOrchestrator.attemptAutoRecovery.mockResolvedValue(mockResult);
 
       const result = await service.attemptAutoRecovery('test-job-123');
 
-      expect(mockConversionOrchestrator.attemptAutoRecovery).toHaveBeenCalledWith('test-job-123', undefined);
+      expect(mockOrchestrator.attemptAutoRecovery).toHaveBeenCalledWith('test-job-123', undefined);
       expect(result).toEqual({
         success: true,
         newJobId: 'new-job-456',
@@ -100,7 +110,7 @@ describe('ConversionErrorRecoveryService', () => {
     });
 
     it('handles auto recovery failure', async () => {
-      mockConversionOrchestrator.attemptAutoRecovery.mockRejectedValue(
+      mockOrchestrator.attemptAutoRecovery.mockRejectedValue(
         new Error('Auto recovery failed')
       );
 
@@ -117,14 +127,26 @@ describe('ConversionErrorRecoveryService', () => {
       const mockProgressCallback = vi.fn();
       const mockResult = { jobId: 'new-job-456' };
 
-      mockConversionOrchestrator.attemptAutoRecovery.mockResolvedValue(mockResult);
+      mockOrchestrator.attemptAutoRecovery.mockResolvedValue(mockResult);
 
       await service.attemptAutoRecovery('test-job-123', mockProgressCallback);
 
-      expect(mockConversionOrchestrator.attemptAutoRecovery).toHaveBeenCalledWith(
+      expect(mockOrchestrator.attemptAutoRecovery).toHaveBeenCalledWith(
         'test-job-123', 
         mockProgressCallback
       );
+    });
+
+    it('handles missing orchestrator', async () => {
+      const serviceWithoutOrchestrator = new ConversionErrorRecoveryService();
+      
+      const result = await serviceWithoutOrchestrator.attemptAutoRecovery('test-job-123');
+
+      expect(result).toEqual({
+        success: false,
+        error: 'Orchestrator not available',
+        method: 'automatic'
+      });
     });
   });
 
@@ -140,11 +162,11 @@ describe('ConversionErrorRecoveryService', () => {
         changeTheme: true
       };
 
-      mockConversionOrchestrator.retryConversionWithRecovery.mockResolvedValue(mockResult);
+      mockOrchestrator.retryConversionWithRecovery.mockResolvedValue(mockResult);
 
       const result = await service.applyManualRecovery('test-job-123', recoveryOptions);
 
-      expect(mockConversionOrchestrator.retryConversionWithRecovery).toHaveBeenCalledWith(
+      expect(mockOrchestrator.retryConversionWithRecovery).toHaveBeenCalledWith(
         'test-job-123',
         recoveryOptions,
         undefined
@@ -157,7 +179,7 @@ describe('ConversionErrorRecoveryService', () => {
     });
 
     it('handles manual recovery failure', async () => {
-      mockConversionOrchestrator.retryConversionWithRecovery.mockRejectedValue(
+      mockOrchestrator.retryConversionWithRecovery.mockRejectedValue(
         new Error('Manual recovery failed')
       );
 
@@ -169,12 +191,24 @@ describe('ConversionErrorRecoveryService', () => {
         method: 'manual'
       });
     });
+
+    it('handles missing orchestrator', async () => {
+      const serviceWithoutOrchestrator = new ConversionErrorRecoveryService();
+      
+      const result = await serviceWithoutOrchestrator.applyManualRecovery('test-job-123', {});
+
+      expect(result).toEqual({
+        success: false,
+        error: 'Orchestrator not available',
+        method: 'manual'
+      });
+    });
   });
 
   describe('getGuidedRecovery', () => {
     beforeEach(() => {
       // Mock recovery options for guided recovery
-      mockConversionOrchestrator.getRecoveryOptions.mockReturnValue({
+      mockOrchestrator.getRecoveryOptions.mockReturnValue({
         canRecover: true,
         autoRecoveryAvailable: true,
         options: [
@@ -223,7 +257,7 @@ describe('ConversionErrorRecoveryService', () => {
     });
 
     it('handles no recovery options', () => {
-      mockConversionOrchestrator.getRecoveryOptions.mockReturnValue({
+      mockOrchestrator.getRecoveryOptions.mockReturnValue({
         canRecover: false,
         autoRecoveryAvailable: false,
         options: [],
@@ -242,7 +276,7 @@ describe('ConversionErrorRecoveryService', () => {
   describe('recovery history', () => {
     it('tracks recovery history', async () => {
       const mockResult = { jobId: 'new-job-456' };
-      mockConversionOrchestrator.attemptAutoRecovery.mockResolvedValue(mockResult);
+      mockOrchestrator.attemptAutoRecovery.mockResolvedValue(mockResult);
 
       await service.attemptAutoRecovery('test-job-123');
 
@@ -257,7 +291,7 @@ describe('ConversionErrorRecoveryService', () => {
 
     it('limits recovery history to 10 entries', async () => {
       const mockResult = { jobId: 'new-job' };
-      mockConversionOrchestrator.attemptAutoRecovery.mockResolvedValue(mockResult);
+      mockOrchestrator.attemptAutoRecovery.mockResolvedValue(mockResult);
 
       // Attempt recovery 15 times
       for (let i = 0; i < 15; i++) {
@@ -270,7 +304,7 @@ describe('ConversionErrorRecoveryService', () => {
 
     it('clears recovery history', async () => {
       const mockResult = { jobId: 'new-job-456' };
-      mockConversionOrchestrator.attemptAutoRecovery.mockResolvedValue(mockResult);
+      mockOrchestrator.attemptAutoRecovery.mockResolvedValue(mockResult);
 
       await service.attemptAutoRecovery('test-job-123');
       expect(service.getRecoveryHistory('test-job-123')).toHaveLength(1);
@@ -283,15 +317,15 @@ describe('ConversionErrorRecoveryService', () => {
   describe('recovery statistics', () => {
     it('calculates recovery statistics', async () => {
       // Mock successful recovery
-      mockConversionOrchestrator.attemptAutoRecovery.mockResolvedValue({ jobId: 'new-job-1' });
+      mockOrchestrator.attemptAutoRecovery.mockResolvedValue({ jobId: 'new-job-1' });
       await service.attemptAutoRecovery('job-1');
 
       // Mock failed recovery
-      mockConversionOrchestrator.attemptAutoRecovery.mockRejectedValue(new Error('Failed'));
+      mockOrchestrator.attemptAutoRecovery.mockRejectedValue(new Error('Failed'));
       await service.attemptAutoRecovery('job-2');
 
       // Mock successful manual recovery
-      mockConversionOrchestrator.retryConversionWithRecovery.mockResolvedValue({ jobId: 'new-job-3' });
+      mockOrchestrator.retryConversionWithRecovery.mockResolvedValue({ jobId: 'new-job-3' });
       await service.applyManualRecovery('job-3', {});
 
       const stats = service.getRecoveryStatistics();
@@ -317,7 +351,7 @@ describe('ConversionErrorRecoveryService', () => {
 
   describe('canRecover', () => {
     it('returns true when recovery is possible', () => {
-      mockConversionOrchestrator.getRecoveryOptions.mockReturnValue({
+      mockOrchestrator.getRecoveryOptions.mockReturnValue({
         canRecover: true,
         autoRecoveryAvailable: true,
         options: [],
@@ -329,7 +363,7 @@ describe('ConversionErrorRecoveryService', () => {
     });
 
     it('returns false when recovery is not possible', () => {
-      mockConversionOrchestrator.getRecoveryOptions.mockReturnValue({
+      mockOrchestrator.getRecoveryOptions.mockReturnValue({
         canRecover: false,
         autoRecoveryAvailable: false,
         options: [],

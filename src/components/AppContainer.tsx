@@ -7,6 +7,7 @@ import ConfigContainer from './config/ConfigContainer';
 import HtmlPreview from './preview/HtmlPreview';
 import ConversionProgress from './progress/ConversionProgress';
 import DownloadManager from './download/DownloadManager';
+import { ConversionErrorRecovery } from './error/ConversionErrorRecovery';
 import './AppContainer.css';
 
 /**
@@ -244,30 +245,61 @@ const AppContainer: React.FC = () => {
       case AppPhase.ERROR:
         return (
           <div className="error-phase">
-            <div className="error-message">
-              <h2>Conversion Error</h2>
-              <p>{ui.globalError || 'An unexpected error occurred during conversion.'}</p>
-              {conversion.error && (
-                <details className="error-details">
-                  <summary>Technical Details</summary>
-                  <pre>{JSON.stringify(conversion.error, null, 2)}</pre>
-                </details>
-              )}
-            </div>
-            <div className="error-actions">
-              <button
-                className="action-button secondary"
-                onClick={() => ui.setPhase(AppPhase.CONFIGURE)}
-              >
-                Try Again
-              </button>
-              <button
-                className="action-button primary"
-                onClick={handleStartOver}
-              >
-                Start Over
-              </button>
-            </div>
+            {/* Show conversion error recovery if we have a conversion job ID */}
+            {conversion.jobId && conversion.error ? (
+              <ConversionErrorRecovery
+                jobId={conversion.jobId}
+                errorMessage={ui.globalError || conversion.error.message || 'An unexpected error occurred during conversion.'}
+                visible={true}
+                onRecoveryAttempt={(jobId, method) => {
+                  ui.setSuccessMessage(`Attempting ${method} recovery for conversion...`);
+                }}
+                onRecoverySuccess={(newJobId) => {
+                  // Update the job ID and restart the conversion process
+                  globalActions.startConversionWorkflow(newJobId);
+                  ui.setSuccessMessage('Recovery successful! Restarting conversion...');
+                }}
+                onRecoveryFailure={(error) => {
+                  ui.setGlobalError(`Recovery failed: ${error}`);
+                }}
+                onDismiss={() => {
+                  // Allow user to dismiss and try manual options
+                  ui.setPhase(AppPhase.CONFIGURE);
+                }}
+                onProgress={(progress) => {
+                  // Update conversion progress during recovery
+                  conversion.updateProgress(progress.progress, progress.message, progress.currentStep);
+                }}
+              />
+            ) : (
+              /* Fallback error display for non-conversion errors */
+              <div className="error-fallback">
+                <div className="error-message">
+                  <h2>Error</h2>
+                  <p>{ui.globalError || 'An unexpected error occurred.'}</p>
+                  {conversion.error && (
+                    <details className="error-details">
+                      <summary>Technical Details</summary>
+                      <pre>{JSON.stringify(conversion.error, null, 2)}</pre>
+                    </details>
+                  )}
+                </div>
+                <div className="error-actions">
+                  <button
+                    className="action-button secondary"
+                    onClick={() => ui.setPhase(AppPhase.CONFIGURE)}
+                  >
+                    Try Again
+                  </button>
+                  <button
+                    className="action-button primary"
+                    onClick={handleStartOver}
+                  >
+                    Start Over
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         );
         

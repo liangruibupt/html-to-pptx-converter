@@ -8,6 +8,7 @@ import { ListHandler } from './conversion/ListHandler.ts';
 import { LinkHandler } from './conversion/LinkHandler.ts';
 import { ThemeHandler } from './conversion/ThemeHandler.ts';
 import { ErrorHandler } from './error/ErrorHandler.ts';
+import { conversionErrorRecoveryService } from './conversion/ConversionErrorRecovery.ts';
 
 /**
  * ConversionOrchestrator - Main service for orchestrating HTML to PPTX conversions
@@ -41,6 +42,9 @@ export class ConversionOrchestrator {
       this.linkHandler,
       this.themeHandler
     );
+
+    // Set up the error recovery service integration
+    conversionErrorRecoveryService.setOrchestrator(this);
   }
 
   /**

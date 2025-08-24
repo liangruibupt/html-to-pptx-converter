@@ -10,7 +10,13 @@
  */
 
 import { ConversionError, ErrorCategory, ErrorSeverity } from '../error/ErrorHandlerInterface';
-import { conversionOrchestrator } from '../ConversionOrchestrator.js';
+
+// Import type for the orchestrator to avoid circular dependency issues
+interface ConversionOrchestratorInterface {
+  getRecoveryOptions(jobId: string): any;
+  attemptAutoRecovery(jobId: string, progressCallback?: (progress: any) => void): Promise<any>;
+  retryConversionWithRecovery(jobId: string, recoveryOptions: { [key: string]: any }, progressCallback?: (progress: any) => void): Promise<any>;
+}
 
 /**
  * Recovery option interface
@@ -74,9 +80,18 @@ export interface RecoveryStrategy {
 export class ConversionErrorRecoveryService {
   private recoveryStrategies: RecoveryStrategy[] = [];
   private recoveryHistory: Map<string, RecoveryResult[]> = new Map();
+  private orchestrator: ConversionOrchestratorInterface | null = null;
 
   constructor() {
     this.initializeRecoveryStrategies();
+  }
+
+  /**
+   * Set the conversion orchestrator instance
+   * This is called by the orchestrator to avoid circular dependencies
+   */
+  setOrchestrator(orchestrator: ConversionOrchestratorInterface): void {
+    this.orchestrator = orchestrator;
   }
 
   /**
@@ -93,19 +108,45 @@ export class ConversionErrorRecoveryService {
     error?: string;
   } {
     try {
-      const result = conversionOrchestrator.getRecoveryOptions(jobId);
-      
-      if (result.error) {
+      if (!this.orchestrator) {
         return {
           canRecover: false,
           autoRecoveryAvailable: false,
           options: [],
           suggestions: [],
-          error: result.error
+          error: 'Orchestrator not available'
         };
       }
 
-      return result;
+      const result = this.orchestrator.getRecoveryOptions(jobId);
+      
+      if (result && typeof result === 'object' && 'error' in result) {
+        return {
+          canRecover: false,
+          autoRecoveryAvailable: false,
+          options: [],
+          suggestions: [],
+          error: result.error as string
+        };
+      }
+
+      // If result is valid, return it with proper typing
+      if (result && typeof result === 'object') {
+        return {
+          canRecover: result.canRecover || false,
+          autoRecoveryAvailable: result.autoRecoveryAvailable || false,
+          options: result.options || [],
+          suggestions: result.suggestions || []
+        };
+      }
+
+      return {
+        canRecover: false,
+        autoRecoveryAvailable: false,
+        options: [],
+        suggestions: [],
+        error: 'Invalid response from orchestrator'
+      };
     } catch (error: any) {
       return {
         canRecover: false,
@@ -126,11 +167,21 @@ export class ConversionErrorRecoveryService {
    */
   async attemptAutoRecovery(jobId: string, progressCallback?: (progress: any) => void): Promise<RecoveryResult> {
     try {
-      const result = await conversionOrchestrator.attemptAutoRecovery(jobId, progressCallback);
+      if (!this.orchestrator) {
+        const recoveryResult: RecoveryResult = {
+          success: false,
+          error: 'Orchestrator not available',
+          method: 'automatic'
+        };
+        this.addToRecoveryHistory(jobId, recoveryResult);
+        return recoveryResult;
+      }
+
+      const result = await this.orchestrator.attemptAutoRecovery(jobId, progressCallback);
       
       const recoveryResult: RecoveryResult = {
         success: true,
-        newJobId: result.jobId,
+        newJobId: result && typeof result === 'object' && 'jobId' in result ? result.jobId as string : undefined,
         method: 'automatic'
       };
 
@@ -164,7 +215,17 @@ export class ConversionErrorRecoveryService {
     progressCallback?: (progress: any) => void
   ): Promise<RecoveryResult> {
     try {
-      const result = await conversionOrchestrator.retryConversionWithRecovery(
+      if (!this.orchestrator) {
+        const recoveryResult: RecoveryResult = {
+          success: false,
+          error: 'Orchestrator not available',
+          method: 'manual'
+        };
+        this.addToRecoveryHistory(jobId, recoveryResult);
+        return recoveryResult;
+      }
+
+      const result = await this.orchestrator.retryConversionWithRecovery(
         jobId, 
         recoveryOptions, 
         progressCallback
@@ -172,7 +233,7 @@ export class ConversionErrorRecoveryService {
       
       const recoveryResult: RecoveryResult = {
         success: true,
-        newJobId: result.jobId,
+        newJobId: result && typeof result === 'object' && 'jobId' in result ? result.jobId as string : undefined,
         method: 'manual'
       };
 
