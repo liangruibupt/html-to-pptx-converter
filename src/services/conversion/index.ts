@@ -20,3 +20,5 @@ export { LinkHandlingError } from './LinkHandlerInterface';
 export { ThemeHandler } from './ThemeHandler';
 export type { ThemeHandlerService } from './ThemeHandlerInterface';
 export { ThemeHandlingError } from './ThemeHandlerInterface';
+export { ConversionErrorRecoveryService, conversionErrorRecoveryService } from './ConversionErrorRecovery';
+export type { RecoveryOption, RecoveryResult, RecoveryStrategy } from './ConversionErrorRecovery';

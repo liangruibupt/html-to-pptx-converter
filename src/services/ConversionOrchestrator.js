@@ -351,6 +351,91 @@ export class ConversionOrchestrator {
   }
 
   /**
+   * Retry a failed conversion with recovery options applied
+   * @param {string} jobId - The job ID to retry
+   * @param {Object} recoveryOptions - Recovery options to apply
+   * @param {Function} progressCallback - Optional progress callback function
+   * @returns {Promise<Object>} New conversion result with new job ID
+   */
+  async retryConversionWithRecovery(jobId, recoveryOptions = {}, progressCallback = null) {
+    const job = this.conversions.get(jobId);
+    
+    if (!job) {
+      throw new Error('Job not found');
+    }
+
+    if (job.status !== 'error') {
+      throw new Error('Can only retry failed conversions');
+    }
+
+    if (!job.error) {
+      throw new Error('No error information available for recovery');
+    }
+
+    // Apply recovery options to the original options
+    const recoveredOptions = this._applyRecoveryOptions(job.options, job.error, recoveryOptions);
+    
+    // Start a new conversion with recovered options
+    return await this.startConversion(job.htmlContent, recoveredOptions, progressCallback);
+  }
+
+  /**
+   * Get recovery suggestions for a failed conversion
+   * @param {string} jobId - The job ID
+   * @returns {Object} Recovery suggestions and options
+   */
+  getRecoveryOptions(jobId) {
+    const job = this.conversions.get(jobId);
+    
+    if (!job) {
+      return {
+        error: 'Job not found',
+        status: 'not_found'
+      };
+    }
+
+    if (job.status !== 'error' || !job.error) {
+      return {
+        error: 'No error found for this job',
+        status: job.status
+      };
+    }
+
+    return this._generateRecoveryOptions(job.error, job.options, job.htmlContent);
+  }
+
+  /**
+   * Attempt automatic recovery for a failed conversion
+   * @param {string} jobId - The job ID to recover
+   * @param {Function} progressCallback - Optional progress callback function
+   * @returns {Promise<Object>} Recovery result
+   */
+  async attemptAutoRecovery(jobId, progressCallback = null) {
+    const job = this.conversions.get(jobId);
+    
+    if (!job) {
+      throw new Error('Job not found');
+    }
+
+    if (job.status !== 'error' || !job.error) {
+      throw new Error('No error to recover from');
+    }
+
+    // Check if automatic recovery is possible
+    const autoRecoveryOptions = this._getAutoRecoveryOptions(job.error, job.options);
+    
+    if (!autoRecoveryOptions.canAutoRecover) {
+      throw new Error('Automatic recovery is not possible for this error type');
+    }
+
+    // Apply automatic recovery options
+    const recoveredOptions = this._applyRecoveryOptions(job.options, job.error, autoRecoveryOptions.options);
+    
+    // Start a new conversion with auto-recovered options
+    return await this.startConversion(job.htmlContent, recoveredOptions, progressCallback);
+  }
+
+  /**
    * Get error statistics from the error handler
    * @returns {Object} Error statistics
    */
@@ -418,6 +503,14 @@ export class ConversionOrchestrator {
       // Create user-friendly error message
       const userMessage = this.errorHandler.createUserFriendlyMessage(conversionError);
       
+      // Attempt automatic recovery if possible
+      const autoRecoveryResult = await this._attemptAutoRecoveryInternal(jobId, conversionError);
+      
+      if (autoRecoveryResult.recovered) {
+        // Auto-recovery succeeded, continue with the recovered conversion
+        return;
+      }
+      
       this._updateProgress(jobId, 'error', 100, userMessage);
     }
   }
@@ -465,11 +558,37 @@ export class ConversionOrchestrator {
     try {
       // Validate HTML content before parsing
       if (!htmlContent || typeof htmlContent !== 'string') {
-        throw new Error('Invalid HTML content: Content must be a non-empty string');
+        const error = new Error('Invalid HTML content: Content must be a non-empty string');
+        error.code = 'INVALID_HTML_TYPE';
+        error.recoverable = false;
+        error.category = 'VALIDATION';
+        throw error;
       }
       
       if (!htmlContent.trim()) {
-        throw new Error('Invalid HTML content: Content cannot be empty or contain only whitespace');
+        const error = new Error('Invalid HTML content: Content cannot be empty or contain only whitespace');
+        error.code = 'EMPTY_HTML_CONTENT';
+        error.recoverable = false;
+        error.category = 'VALIDATION';
+        throw error;
+      }
+
+      // Check for extremely large content that might cause memory issues
+      if (htmlContent.length > 10 * 1024 * 1024) { // 10MB
+        const error = new Error('HTML content is too large and may cause memory issues');
+        error.code = 'HTML_TOO_LARGE';
+        error.recoverable = true;
+        error.category = 'PARSING';
+        throw error;
+      }
+
+      // Check for basic HTML structure
+      if (!/<[a-z][\s\S]*>/i.test(htmlContent)) {
+        const error = new Error('Content does not appear to contain valid HTML tags');
+        error.code = 'INVALID_HTML_FORMAT';
+        error.recoverable = true;
+        error.category = 'PARSING';
+        throw error;
       }
       
       // Use the HTMLParser service to parse the content
@@ -481,10 +600,20 @@ export class ConversionOrchestrator {
       
       return parsedContent;
     } catch (error) {
+      // Enhance error with parsing context if not already enhanced
+      if (!error.code) {
+        error.code = 'HTML_PARSING_ERROR';
+        error.recoverable = true;
+        error.category = 'PARSING';
+      }
+      
       // Create a more specific error for HTML parsing
       const enhancedError = new Error(`HTML parsing failed: ${error.message}`);
       enhancedError.originalError = error;
       enhancedError.step = 'parsing_html';
+      enhancedError.code = error.code;
+      enhancedError.recoverable = error.recoverable;
+      enhancedError.category = error.category;
       throw enhancedError;
     }
   }
@@ -500,11 +629,19 @@ export class ConversionOrchestrator {
       // This step validates and enriches the extracted content
       
       if (!parsedContent) {
-        throw new Error('Parsed content is null or undefined');
+        const error = new Error('Parsed content is null or undefined');
+        error.code = 'NULL_PARSED_CONTENT';
+        error.recoverable = false;
+        error.category = 'PARSING';
+        throw error;
       }
       
       if (!parsedContent.sections || parsedContent.sections.length === 0) {
-        throw new Error('No content sections found in HTML. The HTML might be empty or contain only unsupported elements.');
+        const error = new Error('No content sections found in HTML. The HTML might be empty or contain only unsupported elements.');
+        error.code = 'NO_CONTENT_SECTIONS';
+        error.recoverable = true;
+        error.category = 'PARSING';
+        throw error;
       }
       
       // Validate that we have usable content
@@ -513,7 +650,11 @@ export class ConversionOrchestrator {
       );
       
       if (!hasContent) {
-        throw new Error('No usable content found in HTML sections. Please check that your HTML contains text, headings, or other supported elements.');
+        const error = new Error('No usable content found in HTML sections. Please check that your HTML contains text, headings, or other supported elements.');
+        error.code = 'NO_USABLE_CONTENT';
+        error.recoverable = true;
+        error.category = 'PARSING';
+        throw error;
       }
       
       // Validate that we have at least one section with meaningful content
@@ -523,15 +664,50 @@ export class ConversionOrchestrator {
       });
       
       if (meaningfulSections.length === 0) {
-        throw new Error('No meaningful content found. The HTML appears to contain only empty tags or formatting.');
+        const error = new Error('No meaningful content found. The HTML appears to contain only empty tags or formatting.');
+        error.code = 'NO_MEANINGFUL_CONTENT';
+        error.recoverable = true;
+        error.category = 'PARSING';
+        throw error;
+      }
+
+      // Check for potential issues that might cause problems later
+      const totalContentSize = parsedContent.sections.reduce((size, section) => {
+        return size + (section.content ? section.content.length : 0);
+      }, 0);
+
+      if (totalContentSize > 5 * 1024 * 1024) { // 5MB of content
+        console.warn('Large amount of content detected, this may cause performance issues');
+      }
+
+      // Count complex elements that might cause issues
+      const imageCount = (JSON.stringify(parsedContent).match(/<img/gi) || []).length;
+      const tableCount = (JSON.stringify(parsedContent).match(/<table/gi) || []).length;
+      
+      if (imageCount > 50) {
+        console.warn(`Large number of images detected (${imageCount}), consider reducing for better performance`);
+      }
+      
+      if (tableCount > 20) {
+        console.warn(`Large number of tables detected (${tableCount}), this may affect conversion performance`);
       }
       
       return parsedContent;
     } catch (error) {
+      // Enhance error with extraction context if not already enhanced
+      if (!error.code) {
+        error.code = 'CONTENT_EXTRACTION_ERROR';
+        error.recoverable = true;
+        error.category = 'PARSING';
+      }
+      
       // Create a more specific error for content extraction
       const enhancedError = new Error(`Content extraction failed: ${error.message}`);
       enhancedError.originalError = error;
       enhancedError.step = 'extracting_content';
+      enhancedError.code = error.code;
+      enhancedError.recoverable = error.recoverable;
+      enhancedError.category = error.category;
       throw enhancedError;
     }
   }
@@ -546,7 +722,21 @@ export class ConversionOrchestrator {
     try {
       // Validate extracted content
       if (!extractedContent || !extractedContent.sections) {
-        throw new Error('Invalid extracted content: Missing sections data');
+        const error = new Error('Invalid extracted content: Missing sections data');
+        error.code = 'INVALID_EXTRACTED_CONTENT';
+        error.recoverable = false;
+        error.category = 'CONVERSION';
+        throw error;
+      }
+
+      // Check for potential slide creation issues
+      const sectionCount = extractedContent.sections.length;
+      if (sectionCount > 100) {
+        const error = new Error(`Too many sections (${sectionCount}) may cause performance issues or memory problems`);
+        error.code = 'TOO_MANY_SECTIONS';
+        error.recoverable = true;
+        error.category = 'CONVERSION';
+        throw error;
       }
       
       // Create conversion configuration from options
@@ -577,15 +767,38 @@ export class ConversionOrchestrator {
       const presentation = await this.slideCreator.createSlides(extractedContent, config);
       
       if (!presentation) {
-        throw new Error('Slide creation returned null or undefined presentation');
+        const error = new Error('Slide creation returned null or undefined presentation');
+        error.code = 'NULL_PRESENTATION';
+        error.recoverable = true;
+        error.category = 'CONVERSION';
+        throw error;
+      }
+
+      // Validate the created presentation
+      if (typeof presentation.slides === 'undefined' || presentation.slides.length === 0) {
+        const error = new Error('No slides were created from the content');
+        error.code = 'NO_SLIDES_CREATED';
+        error.recoverable = true;
+        error.category = 'CONVERSION';
+        throw error;
       }
       
       return presentation;
     } catch (error) {
+      // Enhance error with slide creation context if not already enhanced
+      if (!error.code) {
+        error.code = 'SLIDE_CREATION_ERROR';
+        error.recoverable = true;
+        error.category = 'CONVERSION';
+      }
+      
       // Create a more specific error for slide creation
       const enhancedError = new Error(`Slide creation failed: ${error.message}`);
       enhancedError.originalError = error;
       enhancedError.step = 'creating_slides';
+      enhancedError.code = error.code;
+      enhancedError.recoverable = error.recoverable;
+      enhancedError.category = error.category;
       throw enhancedError;
     }
   }
@@ -625,7 +838,20 @@ export class ConversionOrchestrator {
     try {
       // Validate presentation object
       if (!presentation) {
-        throw new Error('Invalid presentation: Presentation object is null or undefined');
+        const error = new Error('Invalid presentation: Presentation object is null or undefined');
+        error.code = 'NULL_PRESENTATION';
+        error.recoverable = false;
+        error.category = 'GENERATION';
+        throw error;
+      }
+
+      // Check for potential memory issues with large presentations
+      if (presentation.slides && presentation.slides.length > 200) {
+        const error = new Error(`Presentation has too many slides (${presentation.slides.length}). This may cause memory issues.`);
+        error.code = 'TOO_MANY_SLIDES';
+        error.recoverable = true;
+        error.category = 'GENERATION';
+        throw error;
       }
       
       // Generate filename from options or use default
@@ -649,7 +875,16 @@ export class ConversionOrchestrator {
       
       // Validate the generated blob
       if (!pptxBlob || pptxBlob.size === 0) {
-        throw new Error('Generated PPTX file is empty or invalid');
+        const error = new Error('Generated PPTX file is empty or invalid');
+        error.code = 'EMPTY_PPTX_FILE';
+        error.recoverable = true;
+        error.category = 'GENERATION';
+        throw error;
+      }
+
+      // Check for suspiciously small files that might indicate generation issues
+      if (pptxBlob.size < 10000) { // Less than 10KB is suspicious for a PPTX file
+        console.warn(`Generated PPTX file is very small (${pptxBlob.size} bytes), this might indicate generation issues`);
       }
       
       // Check if blob is actually a PPTX file (basic validation)
@@ -659,10 +894,20 @@ export class ConversionOrchestrator {
       
       return pptxBlob;
     } catch (error) {
+      // Enhance error with PPTX generation context if not already enhanced
+      if (!error.code) {
+        error.code = 'PPTX_GENERATION_ERROR';
+        error.recoverable = true;
+        error.category = 'GENERATION';
+      }
+      
       // Create a more specific error for PPTX generation
       const enhancedError = new Error(`PPTX generation failed: ${error.message}`);
       enhancedError.originalError = error;
       enhancedError.step = 'generating_pptx';
+      enhancedError.code = error.code;
+      enhancedError.recoverable = error.recoverable;
+      enhancedError.category = error.category;
       throw enhancedError;
     }
   }
@@ -701,6 +946,317 @@ export class ConversionOrchestrator {
       };
     } catch (error) {
       throw new Error(`Conversion finalization failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Apply recovery options to conversion options
+   * @private
+   * @param {Object} originalOptions - Original conversion options
+   * @param {Object} error - Conversion error
+   * @param {Object} recoveryOptions - Recovery options to apply
+   * @returns {Object} Modified options with recovery applied
+   */
+  _applyRecoveryOptions(originalOptions, error, recoveryOptions) {
+    const recoveredOptions = { ...originalOptions };
+    
+    // Apply recovery options based on error type and recovery suggestions
+    if (recoveryOptions.simplifyContent) {
+      recoveredOptions.includeImages = false;
+      recoveredOptions.preserveLinks = false;
+      recoveredOptions.customStyles = {};
+    }
+    
+    if (recoveryOptions.changeTheme) {
+      recoveredOptions.theme = recoveryOptions.fallbackTheme || 'DEFAULT';
+    }
+    
+    if (recoveryOptions.changeLayout) {
+      recoveredOptions.slideLayout = recoveryOptions.fallbackLayout || 'STANDARD';
+    }
+    
+    if (recoveryOptions.changeSplitStrategy) {
+      recoveredOptions.splitStrategy = recoveryOptions.fallbackSplitStrategy || 'BY_H1';
+      if (recoveredOptions.splitStrategy !== 'BY_CUSTOM_SELECTOR') {
+        delete recoveredOptions.customSelector;
+      }
+    }
+    
+    if (recoveryOptions.reduceComplexity) {
+      recoveredOptions.includeImages = false;
+      recoveredOptions.imageOptions = { maxWidth: 400, maxHeight: 300 };
+      recoveredOptions.customStyles = {};
+    }
+    
+    if (recoveryOptions.useCompatibilityMode) {
+      recoveredOptions.slideLayout = 'STANDARD';
+      recoveredOptions.theme = 'DEFAULT';
+      recoveredOptions.includeImages = false;
+      recoveredOptions.preserveLinks = false;
+      recoveredOptions.customStyles = {};
+    }
+    
+    return recoveredOptions;
+  }
+
+  /**
+   * Generate recovery options for a conversion error
+   * @private
+   * @param {Object} error - Conversion error
+   * @param {Object} options - Original conversion options
+   * @param {string} htmlContent - HTML content
+   * @returns {Object} Recovery options and suggestions
+   */
+  _generateRecoveryOptions(error, options, htmlContent) {
+    const recoveryOptions = {
+      canRecover: error.recoverable,
+      autoRecoveryAvailable: false,
+      suggestions: [...(error.suggestions || [])],
+      options: []
+    };
+
+    // Generate recovery options based on error category and context
+    switch (error.category) {
+      case 'PARSING':
+        recoveryOptions.options.push(
+          {
+            id: 'simplify_html',
+            title: 'Simplify HTML Content',
+            description: 'Remove complex HTML elements that might be causing parsing issues',
+            action: 'simplifyContent',
+            automatic: false,
+            impact: 'May lose some formatting and content elements'
+          },
+          {
+            id: 'change_split_strategy',
+            title: 'Change Section Splitting',
+            description: 'Use a simpler section splitting strategy',
+            action: 'changeSplitStrategy',
+            automatic: true,
+            fallbackSplitStrategy: 'BY_H1',
+            impact: 'Content may be organized differently'
+          }
+        );
+        recoveryOptions.autoRecoveryAvailable = true;
+        break;
+
+      case 'GENERATION':
+        recoveryOptions.options.push(
+          {
+            id: 'reduce_complexity',
+            title: 'Reduce Content Complexity',
+            description: 'Disable images and complex formatting to reduce generation load',
+            action: 'reduceComplexity',
+            automatic: true,
+            impact: 'Images and advanced formatting will be removed'
+          },
+          {
+            id: 'change_theme',
+            title: 'Use Default Theme',
+            description: 'Switch to the default theme which is more stable',
+            action: 'changeTheme',
+            automatic: true,
+            fallbackTheme: 'DEFAULT',
+            impact: 'Presentation will use default styling'
+          },
+          {
+            id: 'change_layout',
+            title: 'Use Standard Layout',
+            description: 'Switch to standard slide layout for better compatibility',
+            action: 'changeLayout',
+            automatic: true,
+            fallbackLayout: 'STANDARD',
+            impact: 'Slides will use standard 4:3 layout'
+          }
+        );
+        recoveryOptions.autoRecoveryAvailable = true;
+        break;
+
+      case 'CONVERSION':
+        recoveryOptions.options.push(
+          {
+            id: 'compatibility_mode',
+            title: 'Use Compatibility Mode',
+            description: 'Use the most compatible settings for conversion',
+            action: 'useCompatibilityMode',
+            automatic: true,
+            impact: 'All advanced features will be disabled for maximum compatibility'
+          },
+          {
+            id: 'simplify_content',
+            title: 'Simplify Content',
+            description: 'Remove images and complex elements',
+            action: 'simplifyContent',
+            automatic: false,
+            impact: 'Images and complex formatting will be removed'
+          }
+        );
+        recoveryOptions.autoRecoveryAvailable = true;
+        break;
+
+      case 'VALIDATION':
+        recoveryOptions.options.push(
+          {
+            id: 'fix_validation',
+            title: 'Fix Validation Issues',
+            description: 'Automatically fix common validation problems',
+            action: 'fixValidation',
+            automatic: true,
+            impact: 'Some content may be modified to meet validation requirements'
+          }
+        );
+        recoveryOptions.autoRecoveryAvailable = true;
+        break;
+
+      default:
+        recoveryOptions.options.push(
+          {
+            id: 'use_safe_defaults',
+            title: 'Use Safe Defaults',
+            description: 'Reset all options to safe default values',
+            action: 'useSafeDefaults',
+            automatic: true,
+            impact: 'All custom settings will be reset to defaults'
+          }
+        );
+        recoveryOptions.autoRecoveryAvailable = true;
+    }
+
+    // Add content-specific recovery options
+    if (htmlContent && htmlContent.length > 100000) {
+      recoveryOptions.options.push({
+        id: 'reduce_content_size',
+        title: 'Reduce Content Size',
+        description: 'The HTML content is very large. Try reducing its size.',
+        action: 'reduceContentSize',
+        automatic: false,
+        impact: 'You may need to split your content into smaller parts'
+      });
+    }
+
+    if (options.includeImages && (htmlContent.match(/<img/gi) || []).length > 10) {
+      recoveryOptions.options.push({
+        id: 'disable_images',
+        title: 'Disable Images',
+        description: 'Disable image processing to reduce complexity',
+        action: 'disableImages',
+        automatic: true,
+        impact: 'Images will not be included in the presentation'
+      });
+    }
+
+    return recoveryOptions;
+  }
+
+  /**
+   * Get automatic recovery options for an error
+   * @private
+   * @param {Object} error - Conversion error
+   * @param {Object} options - Original conversion options
+   * @returns {Object} Auto recovery options
+   */
+  _getAutoRecoveryOptions(error, options) {
+    const autoRecovery = {
+      canAutoRecover: false,
+      options: {}
+    };
+
+    // Only attempt auto-recovery for recoverable errors
+    if (!error.recoverable) {
+      return autoRecovery;
+    }
+
+    // Define auto-recovery strategies based on error patterns
+    const errorMessage = error.message.toLowerCase();
+    
+    if (errorMessage.includes('parsing') || errorMessage.includes('html')) {
+      autoRecovery.canAutoRecover = true;
+      autoRecovery.options = {
+        changeSplitStrategy: true,
+        fallbackSplitStrategy: 'BY_H1'
+      };
+    } else if (errorMessage.includes('generation') || errorMessage.includes('pptx')) {
+      autoRecovery.canAutoRecover = true;
+      autoRecovery.options = {
+        reduceComplexity: true,
+        changeTheme: true,
+        fallbackTheme: 'DEFAULT'
+      };
+    } else if (errorMessage.includes('memory') || errorMessage.includes('size')) {
+      autoRecovery.canAutoRecover = true;
+      autoRecovery.options = {
+        simplifyContent: true,
+        reduceComplexity: true
+      };
+    } else if (errorMessage.includes('validation')) {
+      autoRecovery.canAutoRecover = true;
+      autoRecovery.options = {
+        fixValidation: true
+      };
+    } else if (error.category === 'CONVERSION') {
+      autoRecovery.canAutoRecover = true;
+      autoRecovery.options = {
+        useCompatibilityMode: true
+      };
+    }
+
+    return autoRecovery;
+  }
+
+  /**
+   * Attempt automatic recovery internally during conversion
+   * @private
+   * @param {string} jobId - The job ID
+   * @param {Object} error - Conversion error
+   * @returns {Promise<Object>} Recovery result
+   */
+  async _attemptAutoRecoveryInternal(jobId, error) {
+    const job = this.conversions.get(jobId);
+    
+    if (!job || !error.recoverable) {
+      return { recovered: false, reason: 'Not recoverable' };
+    }
+
+    // Check if we've already attempted recovery for this job
+    if (job.recoveryAttempts && job.recoveryAttempts >= 2) {
+      return { recovered: false, reason: 'Maximum recovery attempts reached' };
+    }
+
+    // Initialize recovery attempts counter
+    if (!job.recoveryAttempts) {
+      job.recoveryAttempts = 0;
+    }
+
+    const autoRecoveryOptions = this._getAutoRecoveryOptions(error, job.options);
+    
+    if (!autoRecoveryOptions.canAutoRecover) {
+      return { recovered: false, reason: 'No auto-recovery strategy available' };
+    }
+
+    try {
+      // Increment recovery attempts
+      job.recoveryAttempts++;
+      
+      // Apply recovery options
+      const recoveredOptions = this._applyRecoveryOptions(job.options, error, autoRecoveryOptions.options);
+      
+      // Update job options for recovery attempt
+      job.options = recoveredOptions;
+      job.status = 'processing';
+      job.error = null;
+      
+      // Update progress to indicate recovery attempt
+      this._updateProgress(jobId, 'processing', 5, `Attempting automatic recovery (attempt ${job.recoveryAttempts})...`);
+      
+      // Restart the conversion process with recovered options
+      await this._executeConversion(jobId);
+      
+      return { recovered: true, recoveryOptions: autoRecoveryOptions.options };
+      
+    } catch (recoveryError) {
+      // Recovery failed, restore original error
+      job.error = error;
+      return { recovered: false, reason: `Recovery failed: ${recoveryError.message}` };
     }
   }
 }
