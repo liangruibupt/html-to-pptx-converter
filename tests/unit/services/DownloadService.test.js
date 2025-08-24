@@ -16,6 +16,10 @@ global.URL = {
   revokeObjectURL: mockRevokeObjectURL
 };
 
+global.window = {
+  URL: global.URL
+};
+
 global.document = {
   createElement: mockCreateElement,
   body: {
@@ -51,6 +55,7 @@ describe('DownloadService', () => {
     mockClick.mockClear();
     mockAppendChild.mockClear();
     mockRemoveChild.mockClear();
+    mockRevokeObjectURL.mockClear();
   });
 
   afterEach(() => {
@@ -210,16 +215,27 @@ describe('DownloadService', () => {
 
     it('should return false when URL is not available', () => {
       const originalURL = global.URL;
+      const originalWindow = global.window;
       global.URL = undefined;
+      global.window = undefined;
 
       expect(downloadService.isDownloadSupported()).toBe(false);
 
       global.URL = originalURL;
+      global.window = originalWindow;
     });
   });
 
   describe('getDownloadStats', () => {
     it('should return correct statistics', () => {
+      // Use a fresh service for this test to avoid interference
+      const freshService = new DownloadService();
+      
+      // Make mock return different URLs for each call
+      mockCreateObjectURL
+        .mockReturnValueOnce('blob:mock-url-1')
+        .mockReturnValueOnce('blob:mock-url-2');
+      
       // Prepare a few downloads
       const fileInfo = {
         blob: mockBlob,
@@ -227,10 +243,10 @@ describe('DownloadService', () => {
         mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
       };
 
-      downloadService.prepareDownload(fileInfo);
-      downloadService.prepareDownload(fileInfo);
+      freshService.prepareDownload(fileInfo);
+      freshService.prepareDownload(fileInfo);
 
-      const stats = downloadService.getDownloadStats();
+      const stats = freshService.getDownloadStats();
 
       expect(stats.totalDownloads).toBe(2);
       expect(stats.totalSize).toBe(24); // 12 * 2
@@ -272,6 +288,14 @@ describe('DownloadService', () => {
 
   describe('cleanupAllDownloads', () => {
     it('should cleanup all active URLs', () => {
+      // Use a fresh service for this test to avoid interference
+      const freshService = new DownloadService();
+      
+      // Make mock return different URLs for each call
+      mockCreateObjectURL
+        .mockReturnValueOnce('blob:mock-url-3')
+        .mockReturnValueOnce('blob:mock-url-4');
+      
       // Prepare multiple downloads
       const fileInfo = {
         blob: mockBlob,
@@ -279,14 +303,17 @@ describe('DownloadService', () => {
         mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
       };
 
-      downloadService.prepareDownload(fileInfo);
-      downloadService.prepareDownload(fileInfo);
+      freshService.prepareDownload(fileInfo);
+      freshService.prepareDownload(fileInfo);
 
-      downloadService.cleanupAllDownloads();
+      // Reset the mock to count only the cleanup calls
+      mockRevokeObjectURL.mockClear();
+      
+      freshService.cleanupAllDownloads();
 
       expect(mockRevokeObjectURL).toHaveBeenCalledTimes(2);
       
-      const stats = downloadService.getDownloadStats();
+      const stats = freshService.getDownloadStats();
       expect(stats.activeUrls).toBe(0);
     });
   });

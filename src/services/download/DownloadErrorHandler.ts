@@ -230,26 +230,22 @@ export class DownloadErrorHandler {
     context: DownloadErrorContext,
     retryAttempt: number
   ): string {
+    let message: string;
+    
     // Use custom message if available
     if (this.customMessages[error.code]) {
-      let message = this.customMessages[error.code];
+      message = this.customMessages[error.code];
+    } else {
+      // Generate contextual message
+      message = 'Download failed';
       
-      if (retryAttempt > 0) {
-        message += ` (Attempt ${retryAttempt}/${this.retryConfig.maxRetries + 1})`;
+      if (context.filename) {
+        message += ` for "${context.filename}"`;
       }
       
-      return message;
-    }
-
-    // Generate contextual message
-    let message = 'Download failed';
-    
-    if (context.filename) {
-      message += ` for "${context.filename}"`;
+      message += `: ${error.message}`;
     }
     
-    message += `: ${error.message}`;
-
     // Add retry information
     if (retryAttempt > 0) {
       message += ` (Attempt ${retryAttempt}/${this.retryConfig.maxRetries + 1})`;
@@ -437,7 +433,7 @@ export class DownloadErrorHandler {
       code = 'QUOTA_EXCEEDED';
     } else if (error.name === 'SecurityError' || message.includes('security')) {
       code = 'SECURITY_ERROR';
-    } else if (message.includes('network') || message.includes('fetch')) {
+    } else if (message.toLowerCase().includes('network') || message.includes('fetch')) {
       code = 'NETWORK_ERROR';
     } else if (message.includes('timeout')) {
       code = 'TIMEOUT';
