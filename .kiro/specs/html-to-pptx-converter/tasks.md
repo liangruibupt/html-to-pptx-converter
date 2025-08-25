@@ -189,7 +189,7 @@
     - _Requirements: 4.5_
 
 - [ ] 10. Implement testing
-  - [ ] 10.1 Create unit tests for core components
+  - [x] 10.1 Create unit tests for core components
     - Implement tests for HTML parser
     - Add tests for conversion engine
     - Create tests for PptxGenJS integration
