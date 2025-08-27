@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { cleanupIntegrationTest, setupMockUrls } from './test-cleanup-utils';
+import React from 'react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { appReducer, initialState } from '../../src/store/reducer';
@@ -11,6 +13,8 @@ import ConversionProgress from '../../src/components/progress/ConversionProgress
 import DownloadManager from '../../src/components/download/DownloadManager';
 import { ConversionErrorRecovery } from '../../src/components/error/ConversionErrorRecovery';
 import { ValidationErrorDisplay } from '../../src/components/validation/ValidationErrorDisplay';
+import { i } from 'vitest/dist/reporters-w_64AS5f.js';
+import { i } from 'vitest/dist/reporters-w_64AS5f.js';
 
 /**
  * Integration tests for component interactions
@@ -28,6 +32,7 @@ import { ValidationErrorDisplay } from '../../src/components/validation/Validati
 
 describe('Component Interactions Integration', () => {
   let store: any;
+  let urlCleanup: () => void;
 
   beforeEach(() => {
     store = configureStore({
@@ -40,9 +45,9 @@ describe('Component Interactions Integration', () => {
         })
     });
 
-    // Mock URL methods
-    global.URL.createObjectURL = vi.fn(() => 'mock-blob-url');
-    global.URL.revokeObjectURL = vi.fn();
+    // Setup mock URLs with proper tracking
+    const { cleanup } = setupMockUrls();
+    urlCleanup = cleanup;
 
     // Mock file download elements
     const mockLink = {
@@ -60,7 +65,13 @@ describe('Component Interactions Integration', () => {
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    // Use comprehensive cleanup utility
+    cleanupIntegrationTest();
+    
+    // Clean up URL mocks
+    if (urlCleanup) {
+      urlCleanup();
+    }
   });
 
   describe('Upload Components Integration', () => {
@@ -451,7 +462,7 @@ describe('Component Interactions Integration', () => {
           type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' 
         }),
         fileName: 'test-presentation.pptx',
-        downloadUrl: 'mock-blob-url'
+        downloadUrl: 'mock-blob-url-123456789-0.123456789'
       };
 
       store.dispatch({

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ConversionOrchestrator } from '../../src/services/ConversionOrchestrator.js';
+import { cleanupIntegrationTest, setupMockUrls } from './test-cleanup-utils';
 import { HTMLParser } from '../../src/services/parser/HTMLParser';
 import { PptxGenerator } from '../../src/services/pptx/PptxGenerator';
 import { SlideCreator } from '../../src/services/conversion/SlideCreator';
@@ -33,6 +34,7 @@ describe('Service Integration Tests', () => {
   let slideCreator: SlideCreator;
   let validationService: ValidationService;
   let downloadService: DownloadService;
+  let urlCleanup: () => void;
 
   beforeEach(() => {
     // Initialize services
@@ -58,14 +60,22 @@ describe('Service Integration Tests', () => {
       themeHandler
     );
 
-    // Mock URL methods
-    global.URL.createObjectURL = vi.fn(() => 'mock-blob-url');
-    global.URL.revokeObjectURL = vi.fn();
+    // Setup mock URLs with proper tracking
+    const { cleanup } = setupMockUrls();
+    urlCleanup = cleanup;
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
-    orchestrator.cleanupJobs(0);
+    // Use comprehensive cleanup utility
+    cleanupIntegrationTest({
+      orchestrator,
+      downloadService
+    });
+    
+    // Clean up URL mocks
+    if (urlCleanup) {
+      urlCleanup();
+    }
   });
 
   describe('HTML Parser and Validation Integration', () => {
@@ -345,7 +355,7 @@ describe('Service Integration Tests', () => {
       const downloadResult = downloadService.prepareDownload(pptxBlob, 'test-presentation.pptx');
       
       expect(downloadResult.fileName).toBe('test-presentation.pptx');
-      expect(downloadResult.downloadUrl).toBe('mock-blob-url');
+      expect(downloadResult.downloadUrl).toMatch(/^mock-blob-url-\d+-[\d.]+$/);
       expect(downloadResult.blob).toBe(pptxBlob);
 
       // Test download initiation

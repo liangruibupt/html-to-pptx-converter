@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ConversionOrchestrator } from '../../src/services/ConversionOrchestrator.js';
+import { cleanupIntegrationTest } from './test-cleanup-utils';
 import { conversionErrorRecoveryService } from '../../src/services/conversion/ConversionErrorRecovery';
 
 /**
@@ -20,6 +21,13 @@ describe('Conversion Error Handling Integration', () => {
     orchestrator = new ConversionOrchestrator();
     // Clear any existing conversions
     orchestrator.cleanupJobs(0);
+  });
+
+  afterEach(() => {
+    // Use comprehensive cleanup utility
+    cleanupIntegrationTest({
+      orchestrator
+    });
   });
 
   describe('Error Detection', () => {

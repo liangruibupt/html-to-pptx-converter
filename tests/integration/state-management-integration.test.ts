@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { configureStore } from '@reduxjs/toolkit';
+import { cleanupIntegrationTest } from './test-cleanup-utils';
 import { appReducer, initialState } from '../../src/store/reducer';
 import { AppPhase, AppAction } from '../../src/store/types';
 import { StateService } from '../../src/services/state/StateService';
@@ -37,7 +38,8 @@ describe('State Management Integration', () => {
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    // Use comprehensive cleanup utility
+    cleanupIntegrationTest();
   });
 
   describe('Phase Transitions', () => {

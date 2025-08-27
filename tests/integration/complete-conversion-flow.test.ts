@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { cleanupIntegrationTest, setupMockUrls } from './test-cleanup-utils';
+import React from 'react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { appReducer, initialState } from '../../src/store/reducer';
@@ -27,6 +29,7 @@ import { AppPhase } from '../../src/store/types';
 describe('Complete Conversion Flow Integration', () => {
   let store: any;
   let orchestrator: ConversionOrchestrator;
+  let urlCleanup: () => void;
 
   beforeEach(() => {
     // Create a fresh store for each test
@@ -43,9 +46,9 @@ describe('Complete Conversion Flow Integration', () => {
     // Create orchestrator instance
     orchestrator = new ConversionOrchestrator();
 
-    // Mock URL.createObjectURL and revokeObjectURL
-    global.URL.createObjectURL = vi.fn(() => 'mock-blob-url');
-    global.URL.revokeObjectURL = vi.fn();
+    // Setup mock URLs with proper tracking
+    const { cleanup } = setupMockUrls();
+    urlCleanup = cleanup;
 
     // Mock file download
     const mockLink = {
@@ -65,8 +68,15 @@ describe('Complete Conversion Flow Integration', () => {
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
-    orchestrator.cleanupJobs(0);
+    // Use comprehensive cleanup utility
+    cleanupIntegrationTest({
+      orchestrator
+    });
+    
+    // Clean up URL mocks
+    if (urlCleanup) {
+      urlCleanup();
+    }
   });
 
   describe('File Upload to Conversion Flow', () => {
@@ -185,7 +195,7 @@ describe('Complete Conversion Flow Integration', () => {
         result: {
           blob: new Blob(['mock pptx content'], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' }),
           fileName: 'test.pptx',
-          downloadUrl: 'mock-blob-url'
+          downloadUrl: 'mock-blob-url-123456789-0.123456789'
         }
       });
 

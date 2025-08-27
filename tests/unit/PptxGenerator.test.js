@@ -234,17 +234,15 @@ describe('PptxGenerator', () => {
             const blob = await pptxGenerator.savePresentation(presentation, 'test-presentation');
             expect(blob).toBeInstanceOf(Blob);
             expect(presentation.writeFile).toHaveBeenCalledWith({
-                outputType: 'blob',
-                fileName: 'test-presentation'
+                outputType: 'blob'
             });
         });
-        it('should generate a default filename if not provided', async () => {
+        it('should save as blob without filename to prevent file creation', async () => {
             const presentation = pptxGenerator.createPresentation();
             await pptxGenerator.savePresentation(presentation);
-            expect(presentation.writeFile).toHaveBeenCalledWith(expect.objectContaining({
-                outputType: 'blob',
-                fileName: expect.stringMatching(/^presentation_/)
-            }));
+            expect(presentation.writeFile).toHaveBeenCalledWith({
+                outputType: 'blob'
+            });
         });
     });
     describe('error handling', () => {
