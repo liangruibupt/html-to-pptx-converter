@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Design Test</title>
+    <style>
+        /* Import the enhanced responsive styles */
+        @import url('./src/styles/index.css');
+        @import url('./src/styles/App.css');
+        @import url('./src/styles/mobile.css');
+        @import url('./src/components/AppContainer.css');
+        @import url('./src/components/upload/FileUpload.css');
+        @import url('./src/components/download/DownloadButton.css');
+        
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .test-section {
+            margin-bottom: 40px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        
+        .test-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .breakpoint-info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #333;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="breakpoint-info" id="breakpoint">Desktop</div>
+    
+    <h1>HTML to PPTX Converter - Responsive Design Test</h1>
+    
+    <div class="test-section">
+        <div class="test-title">Upload Component</div>
+        <div class="file-upload-container">
+            <div class="dropzone">
+                <div class="upload-prompt">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">Drop HTML files here or click to browse</div>
+                    <div class="upload-hint">Supports .html files up to 10MB</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <div class="test-title">Action Buttons</div>
+        <div class="actions-container">
+            <button class="action-button primary">Convert to PPTX</button>
+            <button class="action-button secondary">Reset</button>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <div class="test-title">Download Button</div>
+        <button class="download-button primary large">
+            <span class="download-icon">⬇️</span>
+            <span class="download-text">Download PPTX</span>
+        </button>
+    </div>
+    
+    <div class="test-section">
+        <div class="test-title">Mobile Cards</div>
+        <div class="mobile-card">
+            <div class="mobile-card-header">
+                <h3 class="mobile-card-title">Configuration</h3>
+            </div>
+            <div class="mobile-card-content">
+                This card should adapt well to different screen sizes with proper spacing and touch targets.
+            </div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <div class="test-title">Touch Buttons</div>
+        <button class="touch-button" style="background: #3498db; color: white; margin-right: 10px;">
+            Touch Button
+        </button>
+        <button class="mobile-toggle">
+            <input type="checkbox" checked>
+            <span class="mobile-toggle-slider"></span>
+        </button>
+    </div>
+    
+    <script>
+        function updateBreakpoint() {
+            const width = window.innerWidth;
+            const breakpointEl = document.getElementById('breakpoint');
+            
+            if (width <= 360) {
+                breakpointEl.textContent = 'Small Mobile (≤360px)';
+            } else if (width <= 480) {
+                breakpointEl.textContent = 'Mobile (≤480px)';
+            } else if (width <= 768) {
+                breakpointEl.textContent = 'Tablet (≤768px)';
+            } else if (width <= 1024) {
+                breakpointEl.textContent = 'Large Tablet (≤1024px)';
+            } else if (width <= 1200) {
+                breakpointEl.textContent = 'Small Desktop (≤1200px)';
+            } else {
+                breakpointEl.textContent = 'Desktop (>1200px)';
+            }
+        }
+        
+        updateBreakpoint();
+        window.addEventListener('resize', updateBreakpoint);
+    </script>
+</body>
+</html>

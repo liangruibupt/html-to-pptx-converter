@@ -177,25 +177,131 @@ input:checked + .toggle-slider:before {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+  .image-handling-config {
+    padding: 0 0.5rem;
+  }
+  
   .toggle-option {
     flex-direction: column;
     align-items: flex-start;
+    padding: 1rem;
+    gap: 0.75rem;
   }
   
   .toggle-switch {
-    margin-bottom: 0.5rem;
+    margin-right: 0;
+    margin-bottom: 0;
+    align-self: center;
+    transform: scale(1.2); /* Larger for better touch */
+  }
+  
+  .toggle-label {
+    width: 100%;
+    text-align: center;
+  }
+  
+  .option-name {
+    font-size: 1.1rem;
+  }
+  
+  .option-description {
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+  
+  .advanced-toggle {
+    min-height: 48px;
+    padding: 0.75rem 0;
+    font-size: 0.95rem;
+    justify-content: center;
+  }
+  
+  .advanced-options {
+    padding: 1.25rem;
   }
   
   .option-row {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
   }
   
   .option-row label {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0;
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+  
+  .option-row input[type="number"] {
+    width: 100%;
+    min-height: 48px;
+    padding: 0.75rem;
+    font-size: 16px; /* Prevent zoom on iOS */
   }
   
   .range-input {
     width: 100%;
+    gap: 0.75rem;
+  }
+  
+  .range-input input[type="range"] {
+    margin-right: 0;
+    min-height: 48px;
+  }
+  
+  .range-value {
+    width: 60px;
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+}
+
+/* Mobile phones */
+@media (max-width: 480px) {
+  .image-handling-config h3 {
+    font-size: 1.125rem;
+    text-align: center;
+  }
+  
+  .config-description {
+    font-size: 0.875rem;
+    text-align: center;
+    line-height: 1.5;
+  }
+  
+  .toggle-option {
+    padding: 0.875rem;
+  }
+  
+  .toggle-switch {
+    transform: scale(1.3);
+  }
+  
+  .option-name {
+    font-size: 1rem;
+  }
+  
+  .option-description {
+    font-size: 0.85rem;
+  }
+  
+  .advanced-toggle {
+    min-height: 52px;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+  
+  .advanced-options {
+    padding: 1rem;
+  }
+  
+  .option-row {
+    padding: 0.625rem 0;
+  }
+  
+  .option-row input[type="number"] {
+    min-height: 52px;
+    padding: 1rem;
   }
 }

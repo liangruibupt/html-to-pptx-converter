@@ -84,15 +84,102 @@
 }
 
 /* Responsive styles */
+
+/* Tablets */
 @media (max-width: 768px) {
+  .html-preview-container {
+    margin-bottom: 1.25rem;
+  }
+  
+  .html-preview-header {
+    padding: 1rem;
+  }
+  
+  .html-preview-header h3 {
+    font-size: 1.125rem;
+  }
+  
+  .html-preview-content {
+    max-height: 400px;
+  }
+  
   .html-preview-iframe {
-    min-height: 250px;
+    min-height: 280px;
+  }
+  
+  .html-preview-loading .spinner {
+    width: 44px;
+    height: 44px;
+    border-width: 4px;
+  }
+  
+  .html-preview-error {
+    padding: 1.25rem;
+  }
+  
+  .html-preview-error p {
+    font-size: 0.9rem;
+    line-height: 1.5;
   }
 }
 
+/* Mobile phones */
 @media (max-width: 480px) {
+  .html-preview-container {
+    margin-bottom: 1rem;
+    border-radius: 6px;
+  }
+  
   .html-preview-header {
-    padding: 0.5rem 0.75rem;
+    padding: 0.875rem 1rem;
+  }
+  
+  .html-preview-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  
+  .html-preview-content {
+    max-height: 320px;
+  }
+  
+  .html-preview-iframe {
+    min-height: 240px;
+  }
+  
+  .html-preview-loading {
+    gap: 0.75rem;
+  }
+  
+  .html-preview-loading .spinner {
+    width: 36px;
+    height: 36px;
+    border-width: 3px;
+    margin-bottom: 0.75rem;
+  }
+  
+  .html-preview-error {
+    padding: 1rem;
+  }
+  
+  .html-preview-error p {
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+}
+
+/* Small mobile phones */
+@media (max-width: 360px) {
+  .html-preview-header {
+    padding: 0.75rem 0.875rem;
+  }
+  
+  .html-preview-header h3 {
+    font-size: 0.95rem;
+  }
+  
+  .html-preview-content {
+    max-height: 280px;
   }
   
   .html-preview-iframe {
@@ -100,7 +187,34 @@
   }
   
   .html-preview-loading .spinner {
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
+  }
+  
+  .html-preview-error {
+    padding: 0.875rem;
+  }
+  
+  .html-preview-error p {
+    font-size: 0.8rem;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .html-preview-container {
+    /* Better touch scrolling */
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .html-preview-content {
+    /* Smoother scrolling on touch devices */
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .html-preview-iframe {
+    /* Prevent zoom on double tap */
+    touch-action: manipulation;
   }
 }

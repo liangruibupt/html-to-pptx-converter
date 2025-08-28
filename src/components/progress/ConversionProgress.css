@@ -285,20 +285,111 @@
 }
 
 /* Responsive Design */
+
+/* Tablets */
 @media (max-width: 768px) {
   .conversion-progress {
-    padding: 16px;
-    margin: 0 16px;
+    padding: 20px 16px;
+    margin: 0 12px;
+    max-width: none;
   }
   
   .progress-header {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+    align-items: stretch;
+    gap: 16px;
+  }
+  
+  .progress-status {
+    justify-content: center;
+  }
+  
+  .status-text {
+    font-size: 17px;
+    text-align: center;
+  }
+  
+  .cancel-button {
+    align-self: center;
+    min-height: 44px;
+    padding: 10px 20px;
+    font-size: 15px;
   }
   
   .progress-steps {
+    gap: 12px;
+  }
+  
+  .progress-step {
+    padding: 8px 0;
+  }
+  
+  .progress-step.active {
+    padding: 8px 12px;
+  }
+  
+  .step-indicator {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+  
+  .step-label {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  
+  .progress-message {
+    font-size: 15px;
+    margin-bottom: 24px;
+  }
+}
+
+/* Mobile phones */
+@media (max-width: 480px) {
+  .conversion-progress {
+    padding: 16px 12px;
+    margin: 0 8px;
+  }
+  
+  .progress-header {
+    gap: 12px;
+  }
+  
+  .status-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+  }
+  
+  .status-text {
+    font-size: 16px;
+  }
+  
+  .cancel-button {
+    min-height: 48px;
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    width: 100%;
+  }
+  
+  .progress-bar-container {
     gap: 8px;
+    margin-bottom: 16px;
+  }
+  
+  .progress-bar {
+    height: 10px;
+  }
+  
+  .progress-percentage {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  
+  .progress-steps {
+    gap: 10px;
   }
   
   .progress-step {
@@ -306,16 +397,68 @@
   }
   
   .progress-step.active {
-    padding: 6px 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
+  }
+  
+  .step-indicator {
+    width: 30px;
+    height: 30px;
+    font-size: 11px;
+  }
+  
+  .step-label {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  
+  .progress-message {
+    font-size: 14px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+  
+  .error-message,
+  .success-message {
+    margin-top: 12px;
+    padding: 10px 12px;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+}
+
+/* Small mobile phones */
+@media (max-width: 360px) {
+  .conversion-progress {
+    padding: 12px 8px;
+    margin: 0 4px;
+  }
+  
+  .status-text {
+    font-size: 15px;
+  }
+  
+  .cancel-button {
+    min-height: 44px;
+    padding: 10px 20px;
+    font-size: 13px;
+  }
+  
+  .progress-percentage {
+    font-size: 14px;
   }
   
   .step-indicator {
     width: 28px;
     height: 28px;
-    font-size: 11px;
+    font-size: 10px;
   }
   
   .step-label {
+    font-size: 12px;
+  }
+  
+  .progress-message {
     font-size: 13px;
   }
 }

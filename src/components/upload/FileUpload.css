@@ -78,24 +78,83 @@
 }
 
 /* Responsive styles */
+
+/* Tablets */
 @media (max-width: 768px) {
   .dropzone {
-    padding: 1.5rem;
+    padding: 1.75rem 1.5rem;
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .upload-icon {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 1.25rem;
+  }
+  
+  .upload-text {
+    font-size: 1.05rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .upload-hint {
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+}
+
+/* Mobile phones */
+@media (max-width: 480px) {
+  .dropzone {
+    padding: 1.5rem 1rem;
+    min-height: 180px;
+    border-width: 3px; /* Thicker border for better visibility */
+  }
+  
+  .dropzone:hover,
+  .dropzone.active {
+    border-width: 3px;
   }
   
   .upload-icon {
     width: 48px;
     height: 48px;
+    margin-bottom: 1rem;
   }
   
   .upload-text {
     font-size: 1rem;
+    margin-bottom: 0.625rem;
+    font-weight: 500;
+  }
+  
+  .upload-hint {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    text-align: center;
+    max-width: 280px;
+  }
+  
+  .upload-status {
+    gap: 0.75rem;
+  }
+  
+  .spinner {
+    width: 36px;
+    height: 36px;
+    border-width: 3px;
+    margin-bottom: 0.875rem;
   }
 }
 
-@media (max-width: 480px) {
+/* Small mobile phones */
+@media (max-width: 360px) {
   .dropzone {
-    padding: 1rem;
+    padding: 1.25rem 0.875rem;
+    min-height: 160px;
   }
   
   .upload-icon {
@@ -104,10 +163,39 @@
   }
   
   .upload-text {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
   }
   
   .upload-hint {
     font-size: 0.8rem;
+    max-width: 240px;
+  }
+  
+  .spinner {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .dropzone {
+    /* Remove hover effects on touch devices */
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+  }
+  
+  .dropzone:hover {
+    border-color: var(--border-color);
+    background-color: #f9f9f9;
+  }
+  
+  .dropzone.active {
+    border-color: var(--primary-color);
+    background-color: #e6f3fb;
+    transform: scale(1.02); /* Subtle feedback for touch */
+  }
+  
+  .upload-text {
+    font-weight: 500;
   }
 }
