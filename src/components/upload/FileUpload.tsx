@@ -3,6 +3,7 @@ import { useDropzone } from 'react-dropzone';
 import { useUpload, useUI } from '../../store/hooks';
 import { ValidationService } from '../../services/validation';
 import { ValidationErrorDisplay } from '../validation';
+import { useStatusAnnouncement } from '../../hooks/useAccessibility';
 import './FileUpload.css';
 
 // Maximum file size in bytes (5MB)
@@ -31,6 +32,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileAccepted, onError }) => {
   const upload = useUpload();
   const ui = useUI();
   const validationService = new ValidationService();
+  const { announceStatus, announceError, announceSuccess } = useStatusAnnouncement();
 
 
 
@@ -71,11 +73,13 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileAccepted, onError }) => {
       upload.uploadSuccess(content, 'file', file.name, file.size);
       onFileAccepted(content);
       ui.addNotification('success', 'File Uploaded', `Successfully uploaded ${file.name}`);
+      announceSuccess(`File ${file.name} uploaded successfully`);
     } catch (error) {
       const errorMessage = `Error reading file: ${error instanceof Error ? error.message : 'Unknown error'}`;
       upload.uploadError([errorMessage]);
       onError(errorMessage);
       ui.addNotification('error', 'Upload Failed', errorMessage);
+      announceError(errorMessage);
     }
   }, [upload, ui, onFileAccepted, onError, validationService]);
 
@@ -110,17 +114,33 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileAccepted, onError }) => {
       <div 
         {...getRootProps()} 
         className={`dropzone ${isDragActive || isDragging ? 'active' : ''} ${upload.isUploading ? 'processing' : ''}`}
+        role="button"
+        tabIndex={0}
+        aria-label={upload.isUploading ? "File upload in progress" : "Click to select HTML file or drag and drop"}
+        aria-describedby="file-upload-instructions"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            // Trigger file input click
+            const input = e.currentTarget.querySelector('input[type="file"]') as HTMLInputElement;
+            input?.click();
+          }
+        }}
       >
-        <input {...getInputProps()} data-testid="file-input" />
+        <input 
+          {...getInputProps()} 
+          data-testid="file-input"
+          aria-describedby="file-upload-instructions"
+        />
         
         {upload.isUploading ? (
-          <div className="upload-status">
-            <div className="spinner"></div>
+          <div className="upload-status" role="status" aria-live="polite">
+            <div className="spinner" role="progressbar" aria-label="Processing file"></div>
             <p>Processing file...</p>
           </div>
         ) : isDragActive ? (
           <div className="upload-prompt">
-            <div className="upload-icon">
+            <div className="upload-icon" aria-hidden="true">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17"></path>
               </svg>
@@ -129,13 +149,13 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileAccepted, onError }) => {
           </div>
         ) : (
           <div className="upload-prompt">
-            <div className="upload-icon">
+            <div className="upload-icon" aria-hidden="true">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17"></path>
               </svg>
             </div>
             <p className="upload-text">Drag and drop your HTML file here, or click to select a file</p>
-            <p className="upload-hint">Only .html and .htm files are accepted (max {MAX_FILE_SIZE / (1024 * 1024)}MB)</p>
+            <p id="file-upload-instructions" className="upload-hint">Only .html and .htm files are accepted (max {MAX_FILE_SIZE / (1024 * 1024)}MB)</p>
           </div>
         )}
       </div>

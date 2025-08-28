@@ -211,7 +211,7 @@
     - Implement mobile-friendly interactions
     - _Requirements: 5.3_
 
-  - [ ] 11.2 Implement accessibility features
+  - [-] 11.2 Implement accessibility features
     - Add ARIA attributes
     - Implement keyboard navigation
     - Ensure screen reader compatibility

@@ -127,13 +127,14 @@ const ConfigContainer: React.FC<ConfigContainerProps> = ({ initialConfig, onConf
   };
 
   return (
-    <div className="config-container">
+    <div className="config-container" role="region" aria-labelledby="config-heading">
       <div className="config-header">
-        <h2>Configuration Settings</h2>
+        <h2 id="config-heading">Configuration Settings</h2>
         <button 
           className="reset-button"
           onClick={handleResetToDefaults}
-          aria-label="Reset to default configuration settings"
+          aria-label="Reset all configuration settings to their default values"
+          type="button"
         >
           Reset to Defaults
         </button>
@@ -166,18 +167,18 @@ const ConfigContainer: React.FC<ConfigContainerProps> = ({ initialConfig, onConf
         onChange={handleSectionSplittingChange}
       />
       
-      <div className="config-summary">
-        <h3>Current Configuration</h3>
+      <div className="config-summary" role="region" aria-labelledby="config-summary-heading">
+        <h3 id="config-summary-heading">Current Configuration</h3>
         <p className="config-description">
           Your presentation will use the following settings:
         </p>
-        <ul className="config-list">
-          <li><strong>Slide Layout:</strong> {formatSlideLayout(localConfig.slideLayout)}</li>
-          <li><strong>Theme:</strong> {formatTheme(localConfig.theme)}</li>
-          <li><strong>Section Splitting:</strong> {formatSplitStrategy(localConfig.splitSections)}</li>
-          <li><strong>Images:</strong> {localConfig.includeImages ? 'Included' : 'Excluded'}</li>
+        <ul className="config-list" role="list" aria-label="Current configuration settings">
+          <li role="listitem"><strong>Slide Layout:</strong> {formatSlideLayout(localConfig.slideLayout)}</li>
+          <li role="listitem"><strong>Theme:</strong> {formatTheme(localConfig.theme)}</li>
+          <li role="listitem"><strong>Section Splitting:</strong> {formatSplitStrategy(localConfig.splitSections)}</li>
+          <li role="listitem"><strong>Images:</strong> {localConfig.includeImages ? 'Included' : 'Excluded'}</li>
           {localConfig.includeImages && localConfig.imageOptions && (
-            <li className="nested-item">
+            <li className="nested-item" role="listitem">
               <strong>Image Quality:</strong> {localConfig.imageOptions.quality}%
             </li>
           )}

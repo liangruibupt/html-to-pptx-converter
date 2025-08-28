@@ -128,24 +128,25 @@ export const ConversionErrorRecovery: React.FC<ConversionErrorRecoveryProps> = (
   }
 
   return (
-    <div className="conversion-error-recovery">
+    <div className="conversion-error-recovery" role="dialog" aria-labelledby="error-recovery-heading" aria-modal="true">
       <div className="error-recovery-header">
-        <h3>Conversion Error</h3>
+        <h3 id="error-recovery-heading">Conversion Error</h3>
         <button 
           className="dismiss-button"
           onClick={handleDismiss}
-          aria-label="Dismiss error"
+          aria-label="Dismiss error recovery dialog"
+          type="button"
         >
           ×
         </button>
       </div>
 
-      <div className="error-message">
-        <div className="error-icon">⚠️</div>
+      <div className="error-message" role="alert" aria-describedby="error-description">
+        <div className="error-icon" aria-hidden="true">⚠️</div>
         <div className="error-text">
-          <p>{errorMessage}</p>
+          <p id="error-description">{errorMessage}</p>
           {error && (
-            <p className="recovery-error">
+            <p className="recovery-error" role="alert">
               Recovery Error: {error}
             </p>
           )}
@@ -182,6 +183,8 @@ export const ConversionErrorRecovery: React.FC<ConversionErrorRecoveryProps> = (
                 className="recovery-button auto-recovery-button"
                 onClick={handleAutoRecovery}
                 disabled={isRecovering}
+                aria-label={isRecovering ? 'Auto recovery in progress' : 'Start automatic error recovery'}
+                type="button"
               >
                 {isRecovering ? 'Attempting Recovery...' : 'Try Auto Recovery'}
               </button>

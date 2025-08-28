@@ -59,10 +59,10 @@ const ValidationErrorDisplay: React.FC<ValidationErrorDisplayProps> = ({
     : [];
 
   return (
-    <div className={`validation-error-display ${className}`}>
+    <div className={`validation-error-display ${className}`} role="region" aria-label="Validation results">
       {result.isValid && showWhenValid && (
-        <div className="validation-success">
-          <div className="validation-icon success-icon">
+        <div className="validation-success" role="status" aria-live="polite">
+          <div className="validation-icon success-icon" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -72,28 +72,28 @@ const ValidationErrorDisplay: React.FC<ValidationErrorDisplayProps> = ({
       )}
 
       {processedErrors.length > 0 && (
-        <div className="validation-section errors">
+        <div className="validation-section errors" role="alert" aria-labelledby="validation-errors-heading">
           <div className="validation-header">
-            <div className="validation-icon error-icon">
+            <div className="validation-icon error-icon" aria-hidden="true">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="10" />
                 <line x1="15" y1="9" x2="9" y2="15" />
                 <line x1="9" y1="9" x2="15" y2="15" />
               </svg>
             </div>
-            <h4 className="validation-title">
+            <h4 id="validation-errors-heading" className="validation-title">
               {processedErrors.length === 1 ? 'Error' : `Errors (${processedErrors.length})`}
             </h4>
           </div>
-          <ul className="validation-list">
+          <ul className="validation-list" role="list">
             {processedErrors.map((error, index) => (
-              <li key={index} className="validation-item error-item">
+              <li key={index} className="validation-item error-item" role="listitem">
                 {error}
               </li>
             ))}
           </ul>
           {result.errors.length > maxErrors && (
-            <div className="validation-more">
+            <div className="validation-more" aria-label={`${result.errors.length - maxErrors} additional errors not shown`}>
               And {result.errors.length - maxErrors} more error{result.errors.length - maxErrors !== 1 ? 's' : ''}...
             </div>
           )}
@@ -101,28 +101,28 @@ const ValidationErrorDisplay: React.FC<ValidationErrorDisplayProps> = ({
       )}
 
       {processedWarnings.length > 0 && (
-        <div className="validation-section warnings">
+        <div className="validation-section warnings" role="region" aria-labelledby="validation-warnings-heading">
           <div className="validation-header">
-            <div className="validation-icon warning-icon">
+            <div className="validation-icon warning-icon" aria-hidden="true">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
                 <line x1="12" y1="9" x2="12" y2="13" />
                 <line x1="12" y1="17" x2="12.01" y2="17" />
               </svg>
             </div>
-            <h4 className="validation-title">
+            <h4 id="validation-warnings-heading" className="validation-title">
               {processedWarnings.length === 1 ? 'Warning' : `Warnings (${processedWarnings.length})`}
             </h4>
           </div>
-          <ul className="validation-list">
+          <ul className="validation-list" role="list">
             {processedWarnings.map((warning, index) => (
-              <li key={index} className="validation-item warning-item">
+              <li key={index} className="validation-item warning-item" role="listitem">
                 {warning}
               </li>
             ))}
           </ul>
           {result.warnings.length > maxErrors && (
-            <div className="validation-more">
+            <div className="validation-more" aria-label={`${result.warnings.length - maxErrors} additional warnings not shown`}>
               And {result.warnings.length - maxErrors} more warning{result.warnings.length - maxErrors !== 1 ? 's' : ''}...
             </div>
           )}

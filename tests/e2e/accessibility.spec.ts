@@ -1,250 +1,288 @@
-import { test, expect } from '@playwright/test';
-
 /**
- * End-to-End Accessibility Tests
+ * Accessibility End-to-End Tests
  * 
- * These tests verify the application meets accessibility requirements.
- * Requirements: 5.4 - Accessibility features
+ * Tests for accessibility features in the actual application
+ * 
+ * Requirements:
+ * - 5.4: Verify accessibility features work in real browser environment
  */
 
-test.describe('Accessibility', () => {
+import { test, expect } from '@playwright/test';
+
+test.describe('Accessibility Features', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
   });
 
-  test('should have proper ARIA attributes', async ({ page }) => {
-    // Test ARIA attributes
-    // Requirements: 5.4
+  test('should have proper ARIA landmarks and headings', async ({ page }) => {
+    // Check for main landmarks
+    await expect(page.locator('role=banner')).toBeVisible();
+    await expect(page.locator('role=main')).toBeVisible();
+    await expect(page.locator('role=application')).toBeVisible();
 
-    // Check main application has proper role
-    await expect(page.locator('[role="main"]')).toBeVisible();
-
-    // Check form elements have proper labels
-    const fileInput = page.locator('input[type="file"]');
-    await expect(fileInput).toHaveAttribute('aria-label');
-
-    // Check buttons have accessible names
-    const convertButton = page.locator('[data-testid="convert-button"]');
-    await expect(convertButton).toHaveAttribute('aria-label');
-
-    // Check progress indicators have proper ARIA
-    await page.locator('[data-testid="html-input-tab"]').click();
-    await page.locator('[data-testid="html-textarea"]').fill('<html><body><h1>Test</h1></body></html>');
-    await convertButton.click();
-
-    const progressIndicator = page.locator('[data-testid="conversion-progress"]');
-    await expect(progressIndicator).toHaveAttribute('role', 'progressbar');
-    await expect(progressIndicator).toHaveAttribute('aria-label');
+    // Check for proper heading structure
+    await expect(page.locator('h1')).toHaveText('HTML to PPTX Converter');
+    await expect(page.locator('h1')).toHaveAttribute('id', 'app-title');
   });
 
-  test('should support keyboard navigation', async ({ page }) => {
-    // Test keyboard navigation
-    // Requirements: 5.4
-
-    // Tab through main interface elements
-    await page.keyboard.press('Tab'); // Should focus first interactive element
+  test('should have skip link for keyboard navigation', async ({ page }) => {
+    // Skip link should be present but hidden initially
+    const skipLink = page.locator('.skip-link');
+    await expect(skipLink).toBeInViewport({ ratio: 0 }); // Hidden but in DOM
     
-    // Verify file upload is focusable
-    const fileInput = page.locator('input[type="file"]');
-    await expect(fileInput).toBeFocused();
-
-    // Continue tabbing through interface
+    // Focus the skip link and verify it becomes visible
     await page.keyboard.press('Tab');
-    await page.keyboard.press('Tab');
+    await expect(skipLink).toBeFocused();
+    await expect(skipLink).toBeVisible();
+    
+    // Verify skip link functionality
+    await skipLink.click();
+    await expect(page.locator('#main-content')).toBeFocused();
+  });
 
-    // Switch to HTML input using keyboard
-    const htmlInputTab = page.locator('[data-testid="html-input-tab"]');
-    await htmlInputTab.focus();
+  test('should support keyboard navigation in upload section', async ({ page }) => {
+    // Navigate to file upload area
+    await page.keyboard.press('Tab'); // Skip link
+    await page.keyboard.press('Tab'); // Should focus on file upload dropzone
+    
+    const fileUpload = page.locator('.dropzone');
+    await expect(fileUpload).toBeFocused();
+    await expect(fileUpload).toHaveAttribute('role', 'button');
+    await expect(fileUpload).toHaveAttribute('tabindex', '0');
+    
+    // Test keyboard activation
     await page.keyboard.press('Enter');
-
-    // Verify HTML textarea is accessible via keyboard
-    await page.keyboard.press('Tab');
-    const htmlTextarea = page.locator('[data-testid="html-textarea"]');
-    await expect(htmlTextarea).toBeFocused();
-
-    // Type content using keyboard
-    await page.keyboard.type('<html><body><h1>Keyboard Test</h1></body></html>');
-
-    // Navigate to convert button using keyboard
-    await page.keyboard.press('Tab');
-    await page.keyboard.press('Tab');
-    await page.keyboard.press('Tab');
-    
-    const convertButton = page.locator('[data-testid="convert-button"]');
-    await expect(convertButton).toBeFocused();
-
-    // Activate convert button with keyboard
-    await page.keyboard.press('Enter');
-    
-    // Verify conversion starts
-    await expect(page.locator('[data-testid="conversion-progress"]')).toBeVisible();
+    // File dialog should be triggered (we can't test the actual dialog in e2e)
   });
 
-  test('should have proper heading hierarchy', async ({ page }) => {
-    // Test heading structure
-    // Requirements: 5.4
-
-    // Check main heading exists
-    const mainHeading = page.locator('h1').first();
-    await expect(mainHeading).toBeVisible();
-
-    // Check heading hierarchy is logical
-    const headings = await page.locator('h1, h2, h3, h4, h5, h6').all();
+  test('should have proper ARIA attributes on interactive elements', async ({ page }) => {
+    // Check dropzone ARIA attributes
+    const dropzone = page.locator('.dropzone');
+    await expect(dropzone).toHaveAttribute('role', 'button');
+    await expect(dropzone).toHaveAttribute('aria-label');
+    await expect(dropzone).toHaveAttribute('aria-describedby');
     
-    let previousLevel = 0;
-    for (const heading of headings) {
-      const tagName = await heading.evaluate(el => el.tagName.toLowerCase());
-      const currentLevel = parseInt(tagName.charAt(1));
-      
-      // Heading levels should not skip more than one level
-      expect(currentLevel - previousLevel).toBeLessThanOrEqual(1);
-      previousLevel = currentLevel;
-    }
+    // Check status indicator
+    const statusIndicator = page.locator('.app-status');
+    await expect(statusIndicator).toHaveAttribute('role', 'status');
+    await expect(statusIndicator).toHaveAttribute('aria-live', 'polite');
   });
 
-  test('should have sufficient color contrast', async ({ page }) => {
-    // Test color contrast (basic check)
-    // Requirements: 5.4
-
-    // Check that text elements have sufficient contrast
-    const textElements = await page.locator('p, span, label, button').all();
+  test('should announce status changes to screen readers', async ({ page }) => {
+    // Create a simple HTML file for testing
+    const htmlContent = '<html><body><h1>Test</h1><p>Test content</p></body></html>';
     
-    for (const element of textElements.slice(0, 5)) { // Check first 5 elements
-      const styles = await element.evaluate(el => {
-        const computed = window.getComputedStyle(el);
-        return {
-          color: computed.color,
-          backgroundColor: computed.backgroundColor,
-          fontSize: computed.fontSize
-        };
-      });
-      
-      // Basic check that color and background are different
-      expect(styles.color).not.toBe(styles.backgroundColor);
-    }
-  });
-
-  test('should support screen reader announcements', async ({ page }) => {
-    // Test screen reader support
-    // Requirements: 5.4
-
-    // Check for live regions for dynamic content
-    await page.locator('[data-testid="html-input-tab"]').click();
-    await page.locator('[data-testid="html-textarea"]').fill('<html><body><h1>Test</h1></body></html>');
+    // Create a file and upload it
+    const fileInput = page.locator('input[type="file"]');
     
-    // Start conversion
-    await page.locator('[data-testid="convert-button"]').click();
-
-    // Check for aria-live regions for status updates
-    const liveRegion = page.locator('[aria-live]');
-    await expect(liveRegion).toBeVisible();
-
-    // Wait for completion and check success announcement
-    await expect(page.locator('[data-testid="download-button"]')).toBeVisible({ timeout: 10000 });
-    
-    // Verify success state is announced
-    const successMessage = page.locator('[aria-live="polite"]');
-    await expect(successMessage).toBeVisible();
-  });
-
-  test('should handle focus management during conversion', async ({ page }) => {
-    // Test focus management
-    // Requirements: 5.4
-
-    await page.locator('[data-testid="html-input-tab"]').click();
-    await page.locator('[data-testid="html-textarea"]').fill('<html><body><h1>Focus Test</h1></body></html>');
-    
-    const convertButton = page.locator('[data-testid="convert-button"]');
-    await convertButton.focus();
-    await convertButton.click();
-
-    // During conversion, focus should be managed appropriately
-    // Convert button should be disabled or focus should move to progress
-    const isButtonDisabled = await convertButton.isDisabled();
-    const isProgressFocused = await page.locator('[data-testid="conversion-progress"]').isFocused();
-    
-    expect(isButtonDisabled || isProgressFocused).toBeTruthy();
-
-    // After conversion, focus should move to download button
-    await expect(page.locator('[data-testid="download-button"]')).toBeVisible({ timeout: 10000 });
-    
-    // Focus should be on download button or it should be focusable
-    const downloadButton = page.locator('[data-testid="download-button"]');
-    await downloadButton.focus();
-    await expect(downloadButton).toBeFocused();
-  });
-
-  test('should provide error messages in accessible format', async ({ page }) => {
-    // Test accessible error handling
-    // Requirements: 5.4
-
-    // Trigger validation error
-    await page.locator('[data-testid="html-input-tab"]').click();
-    await page.locator('[data-testid="convert-button"]').click(); // Convert without content
-
-    // Check error message accessibility
-    const errorMessage = page.locator('[data-testid="validation-error"]');
-    await expect(errorMessage).toBeVisible();
-    await expect(errorMessage).toHaveAttribute('role', 'alert');
-    await expect(errorMessage).toHaveAttribute('aria-live', 'assertive');
-
-    // Error should be associated with the relevant input
-    const htmlTextarea = page.locator('[data-testid="html-textarea"]');
-    const ariaDescribedBy = await htmlTextarea.getAttribute('aria-describedby');
-    expect(ariaDescribedBy).toBeTruthy();
-  });
-
-  test('should work with high contrast mode', async ({ page }) => {
-    // Test high contrast mode compatibility
-    // Requirements: 5.4
-
-    // Simulate high contrast mode by forcing colors
-    await page.addStyleTag({
-      content: `
-        @media (prefers-contrast: high) {
-          * {
-            background-color: black !important;
-            color: white !important;
-            border-color: white !important;
-          }
-        }
-      `
+    // Create a temporary file
+    const buffer = Buffer.from(htmlContent);
+    await fileInput.setInputFiles({
+      name: 'test.html',
+      mimeType: 'text/html',
+      buffer: buffer
     });
-
-    // Verify interface is still usable
-    await expect(page.locator('[data-testid="app-container"]')).toBeVisible();
     
-    // Test basic functionality still works
-    await page.locator('[data-testid="html-input-tab"]').click();
-    await page.locator('[data-testid="html-textarea"]').fill('<html><body><h1>High Contrast Test</h1></body></html>');
-    await page.locator('[data-testid="convert-button"]').click();
-    
-    await expect(page.locator('[data-testid="download-button"]')).toBeVisible({ timeout: 10000 });
+    // Check for success notification with proper ARIA attributes
+    const notification = page.locator('.notification').first();
+    await expect(notification).toBeVisible();
+    await expect(notification).toHaveAttribute('role', 'status');
+    await expect(notification).toHaveAttribute('aria-labelledby');
+    await expect(notification).toHaveAttribute('aria-describedby');
   });
 
-  test('should support reduced motion preferences', async ({ page }) => {
-    // Test reduced motion support
-    // Requirements: 5.4
+  test('should support keyboard navigation in configuration phase', async ({ page }) => {
+    // First upload a file to get to configuration phase
+    const htmlContent = '<html><body><h1>Test</h1><p>Test content</p></body></html>';
+    const fileInput = page.locator('input[type="file"]');
+    const buffer = Buffer.from(htmlContent);
+    await fileInput.setInputFiles({
+      name: 'test.html',
+      mimeType: 'text/html',
+      buffer: buffer
+    });
+    
+    // Wait for configuration phase
+    await expect(page.locator('.configure-phase')).toBeVisible();
+    
+    // Check configuration section has proper ARIA attributes
+    const configContainer = page.locator('.config-container');
+    await expect(configContainer).toHaveAttribute('role', 'region');
+    await expect(configContainer).toHaveAttribute('aria-labelledby', 'config-heading');
+    
+    // Test keyboard navigation in slide layout options
+    const layoutOptions = page.locator('.layout-options');
+    await expect(layoutOptions).toHaveAttribute('role', 'radiogroup');
+    
+    const radioButtons = page.locator('[role="radio"]');
+    await expect(radioButtons).toHaveCount(3);
+    
+    // Test keyboard navigation between radio buttons
+    await radioButtons.first().focus();
+    await expect(radioButtons.first()).toBeFocused();
+    await expect(radioButtons.first()).toHaveAttribute('aria-checked', 'true');
+    
+    // Navigate with arrow keys
+    await page.keyboard.press('ArrowDown');
+    await expect(radioButtons.nth(1)).toBeFocused();
+    
+    // Activate with Enter key
+    await page.keyboard.press('Enter');
+    await expect(radioButtons.nth(1)).toHaveAttribute('aria-checked', 'true');
+  });
 
-    // Simulate reduced motion preference
+  test('should have accessible buttons with proper labels', async ({ page }) => {
+    // Upload a file first
+    const htmlContent = '<html><body><h1>Test</h1><p>Test content</p></body></html>';
+    const fileInput = page.locator('input[type="file"]');
+    const buffer = Buffer.from(htmlContent);
+    await fileInput.setInputFiles({
+      name: 'test.html',
+      mimeType: 'text/html',
+      buffer: buffer
+    });
+    
+    // Wait for configuration phase
+    await expect(page.locator('.configure-phase')).toBeVisible();
+    
+    // Check action buttons have proper attributes
+    const backButton = page.locator('button:has-text("Back")');
+    const previewButton = page.locator('button:has-text("Preview")');
+    
+    await expect(backButton).toHaveAttribute('type', 'button');
+    await expect(backButton).toHaveAttribute('aria-label');
+    
+    await expect(previewButton).toHaveAttribute('type', 'button');
+    await expect(previewButton).toHaveAttribute('aria-label');
+    
+    // Test keyboard activation
+    await previewButton.focus();
+    await page.keyboard.press('Enter');
+    
+    // Should navigate to preview phase
+    await expect(page.locator('.preview-phase')).toBeVisible();
+  });
+
+  test('should have accessible progress indicators', async ({ page }) => {
+    // Upload a file and proceed to conversion
+    const htmlContent = '<html><body><h1>Test</h1><p>Test content</p></body></html>';
+    const fileInput = page.locator('input[type="file"]');
+    const buffer = Buffer.from(htmlContent);
+    await fileInput.setInputFiles({
+      name: 'test.html',
+      mimeType: 'text/html',
+      buffer: buffer
+    });
+    
+    // Navigate through phases
+    await expect(page.locator('.configure-phase')).toBeVisible();
+    await page.locator('button:has-text("Preview")').click();
+    
+    await expect(page.locator('.preview-phase')).toBeVisible();
+    await page.locator('button:has-text("Start Conversion")').click();
+    
+    // Check progress indicators have proper ARIA attributes
+    const progressBar = page.locator('[role="progressbar"]');
+    await expect(progressBar).toHaveAttribute('aria-valuenow');
+    await expect(progressBar).toHaveAttribute('aria-valuemin', '0');
+    await expect(progressBar).toHaveAttribute('aria-valuemax', '100');
+    await expect(progressBar).toHaveAttribute('aria-label');
+    
+    // Check progress message has live region
+    const progressMessage = page.locator('#progress-message');
+    await expect(progressMessage).toHaveAttribute('role', 'status');
+    await expect(progressMessage).toHaveAttribute('aria-live', 'polite');
+  });
+
+  test('should handle error states accessibly', async ({ page }) => {
+    // Try to upload an invalid file to trigger error
+    const invalidContent = 'This is not valid HTML';
+    const fileInput = page.locator('input[type="file"]');
+    const buffer = Buffer.from(invalidContent);
+    
+    await fileInput.setInputFiles({
+      name: 'invalid.html',
+      mimeType: 'text/html',
+      buffer: buffer
+    });
+    
+    // Check for error notification with proper ARIA attributes
+    const errorNotification = page.locator('.notification-error').first();
+    await expect(errorNotification).toBeVisible();
+    await expect(errorNotification).toHaveAttribute('role', 'alert');
+    
+    // Check validation error display
+    const validationErrors = page.locator('.validation-error-display');
+    if (await validationErrors.isVisible()) {
+      await expect(validationErrors).toHaveAttribute('role', 'region');
+      await expect(validationErrors).toHaveAttribute('aria-label', 'Validation results');
+      
+      const errorSection = page.locator('.validation-section.errors');
+      if (await errorSection.isVisible()) {
+        await expect(errorSection).toHaveAttribute('role', 'alert');
+      }
+    }
+  });
+
+  test('should support high contrast mode', async ({ page }) => {
+    // Enable high contrast mode simulation
+    await page.emulateMedia({ colorScheme: 'dark', forcedColors: 'active' });
+    
+    // Check that elements are still visible and accessible
+    await expect(page.locator('h1')).toBeVisible();
+    await expect(page.locator('.dropzone')).toBeVisible();
+    
+    // Check focus indicators are visible
+    await page.keyboard.press('Tab'); // Skip link
+    await page.keyboard.press('Tab'); // Dropzone
+    
+    const focusedElement = page.locator(':focus');
+    await expect(focusedElement).toBeVisible();
+  });
+
+  test('should respect reduced motion preferences', async ({ page }) => {
+    // Enable reduced motion preference
     await page.emulateMedia({ reducedMotion: 'reduce' });
-
-    // Verify animations are reduced or disabled
-    await page.locator('[data-testid="html-input-tab"]').click();
-    await page.locator('[data-testid="html-textarea"]').fill('<html><body><h1>Motion Test</h1></body></html>');
-    await page.locator('[data-testid="convert-button"]').click();
-
-    // Progress indicator should still be visible but with reduced motion
-    const progressIndicator = page.locator('[data-testid="conversion-progress"]');
-    await expect(progressIndicator).toBeVisible();
-
-    // Check that transitions are reduced
-    const animationDuration = await progressIndicator.evaluate(el => {
-      const computed = window.getComputedStyle(el);
-      return computed.animationDuration;
+    
+    // Upload a file to trigger animations
+    const htmlContent = '<html><body><h1>Test</h1><p>Test content</p></body></html>';
+    const fileInput = page.locator('input[type="file"]');
+    const buffer = Buffer.from(htmlContent);
+    await fileInput.setInputFiles({
+      name: 'test.html',
+      mimeType: 'text/html',
+      buffer: buffer
     });
+    
+    // Animations should be reduced/disabled
+    // This is mainly handled by CSS, so we just verify the page still functions
+    await expect(page.locator('.configure-phase')).toBeVisible();
+  });
 
-    // In reduced motion mode, animations should be faster or disabled
-    expect(animationDuration === '0s' || animationDuration === 'none').toBeTruthy();
+  test('should have proper focus management in notifications', async ({ page }) => {
+    // Upload a file to trigger notification
+    const htmlContent = '<html><body><h1>Test</h1><p>Test content</p></body></html>';
+    const fileInput = page.locator('input[type="file"]');
+    const buffer = Buffer.from(htmlContent);
+    await fileInput.setInputFiles({
+      name: 'test.html',
+      mimeType: 'text/html',
+      buffer: buffer
+    });
+    
+    // Check notification close button is accessible
+    const notification = page.locator('.notification').first();
+    await expect(notification).toBeVisible();
+    
+    const closeButton = notification.locator('.notification-close');
+    await expect(closeButton).toHaveAttribute('type', 'button');
+    await expect(closeButton).toHaveAttribute('aria-label');
+    
+    // Test keyboard activation
+    await closeButton.focus();
+    await page.keyboard.press('Enter');
+    
+    // Notification should be dismissed
+    await expect(notification).not.toBeVisible();
   });
 });

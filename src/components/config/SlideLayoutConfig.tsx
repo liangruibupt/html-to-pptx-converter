@@ -27,20 +27,22 @@ const SlideLayoutConfig: React.FC<SlideLayoutConfigProps> = ({ initialLayout, on
 
   return (
     <div className="slide-layout-config">
-      <h3>Slide Layout</h3>
+      <h3 id="slide-layout-heading">Slide Layout</h3>
       <p className="config-description">
         Choose the layout format for your presentation slides.
       </p>
       
-      <div className="layout-options">
+      <div className="layout-options" role="radiogroup" aria-labelledby="slide-layout-heading">
         <div 
           className={`layout-option ${selectedLayout === SlideLayout.STANDARD ? 'selected' : ''}`}
           onClick={() => handleLayoutChange(SlideLayout.STANDARD)}
           tabIndex={0}
           role="radio"
           aria-checked={selectedLayout === SlideLayout.STANDARD}
+          aria-describedby="standard-layout-desc"
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
               handleLayoutChange(SlideLayout.STANDARD);
             }
           }}
@@ -51,7 +53,7 @@ const SlideLayoutConfig: React.FC<SlideLayoutConfigProps> = ({ initialLayout, on
           </div>
           <div className="layout-label">
             <span className="layout-name">Standard (4:3)</span>
-            <span className="layout-description">Traditional PowerPoint slide format</span>
+            <span id="standard-layout-desc" className="layout-description">Traditional PowerPoint slide format</span>
           </div>
         </div>
         
@@ -61,8 +63,10 @@ const SlideLayoutConfig: React.FC<SlideLayoutConfigProps> = ({ initialLayout, on
           tabIndex={0}
           role="radio"
           aria-checked={selectedLayout === SlideLayout.WIDE}
+          aria-describedby="wide-layout-desc"
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
               handleLayoutChange(SlideLayout.WIDE);
             }
           }}
@@ -73,7 +77,7 @@ const SlideLayoutConfig: React.FC<SlideLayoutConfigProps> = ({ initialLayout, on
           </div>
           <div className="layout-label">
             <span className="layout-name">Widescreen (16:9)</span>
-            <span className="layout-description">Modern widescreen format</span>
+            <span id="wide-layout-desc" className="layout-description">Modern widescreen format</span>
           </div>
         </div>
         
@@ -83,8 +87,10 @@ const SlideLayoutConfig: React.FC<SlideLayoutConfigProps> = ({ initialLayout, on
           tabIndex={0}
           role="radio"
           aria-checked={selectedLayout === SlideLayout.CUSTOM}
+          aria-describedby="custom-layout-desc"
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
               handleLayoutChange(SlideLayout.CUSTOM);
             }
           }}
@@ -95,7 +101,7 @@ const SlideLayoutConfig: React.FC<SlideLayoutConfigProps> = ({ initialLayout, on
           </div>
           <div className="layout-label">
             <span className="layout-name">Custom</span>
-            <span className="layout-description">Customized slide dimensions</span>
+            <span id="custom-layout-desc" className="layout-description">Customized slide dimensions</span>
           </div>
         </div>
       </div>

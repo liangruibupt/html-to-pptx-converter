@@ -92,20 +92,21 @@ const AppContainer: React.FC = () => {
     switch (ui.currentPhase) {
       case AppPhase.UPLOAD:
         return (
-          <div className="upload-phase">
-            <div className="upload-options">
-              <div className="upload-option">
-                <h3>Upload HTML File</h3>
+          <div className="upload-phase" role="region" aria-labelledby="upload-heading">
+            <h2 id="upload-heading" className="sr-only">Upload HTML Content</h2>
+            <div className="upload-options" role="group" aria-label="Choose how to provide HTML content">
+              <div className="upload-option" role="region" aria-labelledby="file-upload-heading">
+                <h3 id="file-upload-heading">Upload HTML File</h3>
                 <FileUpload
                   onFileAccepted={handleFileUploadSuccess}
                   onError={handleFileUploadError}
                 />
               </div>
-              <div className="upload-divider">
+              <div className="upload-divider" role="separator" aria-label="Alternative option">
                 <span>OR</span>
               </div>
-              <div className="upload-option">
-                <h3>Enter HTML Content</h3>
+              <div className="upload-option" role="region" aria-labelledby="html-input-heading">
+                <h3 id="html-input-heading">Enter HTML Content</h3>
                 <HtmlInput
                   onContentAccepted={handleHtmlInputSuccess}
                   onError={handleHtmlInputError}
@@ -129,6 +130,8 @@ const AppContainer: React.FC = () => {
                     className="action-button secondary"
                     onClick={handleGoBack}
                     disabled={!transitions.canGoBack}
+                    aria-label="Go back to upload step"
+                    type="button"
                   >
                     Back
                   </button>
@@ -136,6 +139,8 @@ const AppContainer: React.FC = () => {
                     className="action-button primary"
                     onClick={handleProceedToNext}
                     disabled={!transitions.canProceed}
+                    aria-label="Proceed to preview step"
+                    type="button"
                   >
                     Preview
                   </button>
@@ -155,10 +160,10 @@ const AppContainer: React.FC = () => {
         
       case AppPhase.PREVIEW:
         return (
-          <div className="preview-phase">
+          <div className="preview-phase" role="region" aria-labelledby="preview-heading">
             <div className="preview-content">
               <div className="preview-main">
-                <h2>Preview Your Content</h2>
+                <h2 id="preview-heading">Preview Your Content</h2>
                 <p>Review how your HTML content will be converted to slides:</p>
                 {upload.htmlContent && (
                   <HtmlPreview
@@ -167,21 +172,23 @@ const AppContainer: React.FC = () => {
                   />
                 )}
                 {preview.errors.length > 0 && (
-                  <div className="preview-errors">
-                    <h3>Preview Issues:</h3>
-                    <ul>
+                  <div className="preview-errors" role="alert" aria-labelledby="preview-errors-heading">
+                    <h3 id="preview-errors-heading">Preview Issues:</h3>
+                    <ul role="list">
                       {preview.errors.map((error, index) => (
-                        <li key={index}>{error}</li>
+                        <li key={index} role="listitem">{error}</li>
                       ))}
                     </ul>
                   </div>
                 )}
               </div>
-              <div className="preview-actions">
+              <div className="preview-actions" role="group" aria-label="Preview actions">
                 <button
                   className="action-button secondary"
                   onClick={handleGoBack}
                   disabled={!transitions.canGoBack}
+                  aria-label="Go back to configuration step"
+                  type="button"
                 >
                   Back to Configuration
                 </button>
@@ -189,6 +196,8 @@ const AppContainer: React.FC = () => {
                   className="action-button primary"
                   onClick={handleStartConversion}
                   disabled={!transitions.canProceed || preview.errors.length > 0}
+                  aria-label={preview.errors.length > 0 ? "Cannot start conversion due to preview errors" : "Start converting HTML to PPTX"}
+                  type="button"
                 >
                   Start Conversion
                 </button>
@@ -268,7 +277,7 @@ const AppContainer: React.FC = () => {
                 }}
                 onProgress={(progress) => {
                   // Update conversion progress during recovery
-                  conversion.updateProgress(progress.progress, progress.message, progress.currentStep);
+                  conversion.updateProgress(progress.progress, progress.message, progress.currentStep, 0);
                 }}
               />
             ) : (
@@ -323,20 +332,24 @@ const AppContainer: React.FC = () => {
     if (ui.notifications.length === 0) return null;
     
     return (
-      <div className="notifications-container">
+      <div className="notifications-container" role="region" aria-label="Notifications" aria-live="polite">
         {ui.notifications.map(notification => (
           <div
             key={notification.id}
             className={`notification notification-${notification.type}`}
+            role={notification.type === 'error' ? 'alert' : 'status'}
+            aria-labelledby={`notification-title-${notification.id}`}
+            aria-describedby={`notification-message-${notification.id}`}
           >
             <div className="notification-content">
-              <h4>{notification.title}</h4>
-              <p>{notification.message}</p>
+              <h4 id={`notification-title-${notification.id}`}>{notification.title}</h4>
+              <p id={`notification-message-${notification.id}`}>{notification.message}</p>
             </div>
             <button
               className="notification-close"
               onClick={() => ui.removeNotification(notification.id)}
-              aria-label="Close notification"
+              aria-label={`Close ${notification.type} notification: ${notification.title}`}
+              type="button"
             >
               ×
             </button>
@@ -347,22 +360,26 @@ const AppContainer: React.FC = () => {
   };
   
   return (
-    <div className="app-container">
-      <header className="app-header">
-        <h1>HTML to PPTX Converter</h1>
-        <div className="app-status">
-          <span className={`status-indicator status-${ui.currentPhase}`}>
+    <div className="app-container" role="application" aria-label="HTML to PPTX Converter Application">
+      <a href="#main-content" className="skip-link">Skip to main content</a>
+      <header className="app-header" role="banner">
+        <h1 id="app-title">HTML to PPTX Converter</h1>
+        <div className="app-status" role="status" aria-live="polite" aria-label="Application status">
+          <span 
+            className={`status-indicator status-${ui.currentPhase}`}
+            aria-label={`Current phase: ${ui.currentPhase.charAt(0).toUpperCase() + ui.currentPhase.slice(1)}`}
+          >
             {ui.currentPhase.charAt(0).toUpperCase() + ui.currentPhase.slice(1)}
           </span>
           {status.isLoading && (
-            <div className="loading-indicator">
-              <div className="spinner"></div>
+            <div className="loading-indicator" aria-label="Loading">
+              <div className="spinner" role="progressbar" aria-label="Loading in progress"></div>
             </div>
           )}
         </div>
       </header>
       
-      <main className="app-main">
+      <main id="main-content" className="app-main" role="main" aria-labelledby="app-title">
         {renderPhaseContent()}
       </main>
       
@@ -370,12 +387,13 @@ const AppContainer: React.FC = () => {
       
       {/* Global error message */}
       {ui.globalError && ui.currentPhase !== AppPhase.ERROR && (
-        <div className="global-error">
+        <div className="global-error" role="alert" aria-live="assertive">
           <div className="error-content">
             <span>{ui.globalError}</span>
             <button
               onClick={() => ui.setGlobalError(null)}
-              aria-label="Dismiss error"
+              aria-label="Dismiss error message"
+              type="button"
             >
               ×
             </button>
@@ -385,12 +403,13 @@ const AppContainer: React.FC = () => {
       
       {/* Global success message */}
       {ui.successMessage && (
-        <div className="global-success">
+        <div className="global-success" role="status" aria-live="polite">
           <div className="success-content">
             <span>{ui.successMessage}</span>
             <button
               onClick={() => ui.setSuccessMessage(null)}
               aria-label="Dismiss success message"
+              type="button"
             >
               ×
             </button>

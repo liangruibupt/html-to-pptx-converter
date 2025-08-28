@@ -151,7 +151,14 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({
       className={`download-button ${variant} ${size} ${className} ${isDownloading ? 'downloading' : ''}`}
       onClick={handleDownload}
       disabled={disabled || isDownloading || !isDownloadAvailable}
-      aria-label={isDownloading ? 'Downloading...' : 'Download PPTX file'}
+      aria-label={
+        !isDownloadAvailable 
+          ? 'Download not available - no file ready for download' 
+          : isDownloading 
+            ? 'Download in progress, please wait' 
+            : `Download PPTX file${filename ? ` named ${filename}` : ''}`
+      }
+      aria-describedby={!isDownloadAvailable ? 'download-unavailable-help' : undefined}
       title={
         !isDownloadAvailable 
           ? 'Download not available' 
@@ -161,9 +168,14 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({
       }
     >
       {getIcon()}
-      <span className="download-text">
+      <span className="download-text" aria-hidden={isDownloading ? "false" : "true"}>
         {isDownloading ? 'Downloading...' : children}
       </span>
+      {!isDownloadAvailable && (
+        <span id="download-unavailable-help" className="sr-only">
+          No file is currently available for download. Please complete the conversion process first.
+        </span>
+      )}
     </button>
   );
 };

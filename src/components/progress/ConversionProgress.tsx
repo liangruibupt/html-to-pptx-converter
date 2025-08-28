@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useConversion, useUI } from '../../store/hooks';
+import { useProgressAnnouncement } from '../../hooks/useAccessibility';
 import './ConversionProgress.css';
 
 /**
@@ -61,6 +62,7 @@ export const ConversionProgress: React.FC<ConversionProgressProps> = ({
 }) => {
   const conversion = useConversion();
   const ui = useUI();
+  const { announce, announceCompletion, announceError } = useProgressAnnouncement();
   
   // Use props if provided, otherwise use state
   const progress = propProgress !== undefined ? propProgress : conversion.progress;
@@ -70,7 +72,7 @@ export const ConversionProgress: React.FC<ConversionProgressProps> = ({
   const currentStepIndex = conversion.currentStepIndex;
   
   // Determine status based on conversion state
-  const getStatus = () => {
+  const getStatus = (): 'idle' | 'started' | 'processing' | 'completed' | 'error' => {
     if (conversion.error) return 'error';
     if (conversion.result && !conversion.isConverting) return 'completed';
     if (conversion.isConverting) return 'processing';
@@ -79,6 +81,22 @@ export const ConversionProgress: React.FC<ConversionProgressProps> = ({
   };
   
   const status = getStatus();
+  
+  // Announce progress changes to screen readers
+  useEffect(() => {
+    if (isActive && currentStep && progress > 0) {
+      announce(currentStep, progress);
+    }
+  }, [currentStep, progress, isActive, announce]);
+  
+  // Announce completion or error
+  useEffect(() => {
+    if (status === 'completed') {
+      announceCompletion('Conversion completed successfully');
+    } else if (status === 'error' && message) {
+      announceError(message);
+    }
+  }, [status, message, announceCompletion, announceError]);
   // Determine the progress bar color based on status
   const getProgressColor = () => {
     switch (status) {
@@ -86,8 +104,6 @@ export const ConversionProgress: React.FC<ConversionProgressProps> = ({
         return 'success';
       case 'error':
         return 'error';
-      case 'cancelled':
-        return 'warning';
       case 'processing':
       case 'started':
         return 'primary';
@@ -103,8 +119,6 @@ export const ConversionProgress: React.FC<ConversionProgressProps> = ({
         return '✓';
       case 'error':
         return '✗';
-      case 'cancelled':
-        return '⚠';
       case 'processing':
       case 'started':
         return '⟳';
@@ -126,8 +140,6 @@ export const ConversionProgress: React.FC<ConversionProgressProps> = ({
         return 'Conversion completed!';
       case 'error':
         return 'Conversion failed';
-      case 'cancelled':
-        return 'Conversion cancelled';
       default:
         return '';
     }
@@ -136,7 +148,7 @@ export const ConversionProgress: React.FC<ConversionProgressProps> = ({
   // Calculate step progress
   const getStepProgress = (stepIndex: number) => {
     if (status === 'completed') return 100;
-    if (status === 'error' || status === 'cancelled') return stepIndex < currentStepIndex ? 100 : 0;
+    if (status === 'error') return stepIndex < currentStepIndex ? 100 : 0;
     
     if (stepIndex < currentStepIndex) return 100;
     if (stepIndex === currentStepIndex) {
@@ -149,21 +161,22 @@ export const ConversionProgress: React.FC<ConversionProgressProps> = ({
   };
 
   return (
-    <div className={`conversion-progress ${className} ${status}`}>
+    <div className={`conversion-progress ${className} ${status}`} role="region" aria-labelledby="conversion-progress-heading">
       {/* Main Progress Bar */}
       <div className="progress-header">
         <div className="progress-status">
-          <span className={`status-icon ${status}`}>
+          <span className={`status-icon ${status}`} aria-hidden="true">
             {getStatusIcon()}
           </span>
-          <span className="status-text">{getStatusText()}</span>
+          <span id="conversion-progress-heading" className="status-text">{getStatusText()}</span>
         </div>
         
         {showCancel && onCancel && (status === 'processing' || status === 'started') && (
           <button 
             className="cancel-button"
             onClick={onCancel}
-            aria-label="Cancel conversion"
+            aria-label="Cancel the current conversion process"
+            type="button"
           >
             Cancel
           </button>
@@ -171,30 +184,31 @@ export const ConversionProgress: React.FC<ConversionProgressProps> = ({
       </div>
 
       <div className="progress-bar-container">
-        <div className="progress-bar">
+        <div className="progress-bar" role="presentation">
           <div 
             className={`progress-fill ${getProgressColor()} ${animated ? 'animated' : ''}`}
             style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
             role="progressbar"
-            aria-valuenow={progress}
+            aria-valuenow={Math.round(progress)}
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-label={`Conversion progress: ${progress}%`}
+            aria-label={`Conversion progress: ${Math.round(progress)} percent complete`}
+            aria-describedby="progress-message"
           />
         </div>
-        <div className="progress-percentage">
+        <div className="progress-percentage" aria-hidden="true">
           {Math.round(progress)}%
         </div>
       </div>
 
       {/* Current Step Message */}
-      <div className="progress-message">
+      <div id="progress-message" className="progress-message" role="status" aria-live="polite">
         {message || currentStep}
       </div>
 
       {/* Detailed Steps */}
       {showSteps && (
-        <div className="progress-steps">
+        <div className="progress-steps" role="list" aria-label="Conversion steps">
           {steps.map((step, index) => {
             const stepProgress = getStepProgress(index);
             const isActive = index === currentStepIndex;
@@ -205,14 +219,29 @@ export const ConversionProgress: React.FC<ConversionProgressProps> = ({
               <div 
                 key={index}
                 className={`progress-step ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''} ${isFailed ? 'failed' : ''}`}
+                role="listitem"
+                aria-label={`Step ${index + 1}: ${step}`}
+                aria-current={isActive ? 'step' : undefined}
               >
-                <div className="step-indicator">
-                  <div className="step-number">
+                <div className="step-indicator" role="presentation">
+                  <div 
+                    className="step-number"
+                    aria-label={
+                      isCompleted ? `Step ${index + 1} completed` :
+                      isFailed ? `Step ${index + 1} failed` :
+                      `Step ${index + 1}`
+                    }
+                  >
                     {isCompleted ? '✓' : isFailed ? '✗' : index + 1}
                   </div>
                   <div 
                     className="step-progress-bar"
                     style={{ width: `${stepProgress}%` }}
+                    role="progressbar"
+                    aria-valuenow={stepProgress}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label={`Step ${index + 1} progress: ${stepProgress}%`}
                   />
                 </div>
                 <div className="step-label">
