@@ -34,35 +34,66 @@ export interface ConversionProgressState {
 
 export interface ConversionStatusResponse {
   jobId?: string;
-  status?: ConversionStatus;
+  status?: ConversionStatus | 'not_found';
   progress?: number;
   currentStep?: string;
-  message?: string;
+  startTime?: Date;
   error?: string;
+  result?: any;
 }
 
 export interface ConversionStartResponse {
   jobId: string;
   status: ConversionStatus;
+  message: string;
+  options: any;
 }
 
 export interface ConversionResultResponse {
+  jobId?: string;
   status: ConversionStatus;
   result?: any;
+  error?: any;
+  progress?: number;
 }
 
 export interface ConversionErrorResponse {
-  error: any;
+  jobId?: string;
+  status?: ConversionStatus | 'not_found';
+  error?: any;
   userMessage?: string;
+  suggestions?: string[];
+  recoveryOptions?: any;
+}
+
+export interface ProgressInfo {
+  progress?: number;
+  status?: ConversionStatus;
+  currentStep?: string;
+  message?: string;
 }
 
 export interface ConversionCancelResponse {
-  status: ConversionStatus;
+  jobId?: string;
+  status: ConversionStatus | 'not_found';
+  message?: string;
+  error?: string;
+}
+
+export interface ConversionOptions {
+  slideLayout?: string;
+  includeImages?: boolean;
+  imageOptions?: any;
+  theme?: string;
+  splitSections?: string;
+  customSectionSelector?: string;
+  preserveLinks?: boolean;
+  customStyles?: Record<string, any>;
 }
 
 export interface UseConversionProgressReturn extends ConversionProgressState {
   /** Start a new conversion */
-  startConversion: (htmlContent: string, options?: any) => Promise<void>;
+  startConversion: (htmlContent: string, options?: ConversionOptions) => Promise<void>;
   /** Cancel the current conversion */
   cancelConversion: () => void;
   /** Retry a failed conversion */
@@ -93,7 +124,7 @@ export const useConversionProgress = (): UseConversionProgressReturn => {
   });
 
   // Store the last conversion parameters for retry functionality
-  const lastConversionRef = useRef<{ htmlContent: string; options?: any } | null>(null);
+  const lastConversionRef = useRef<{ htmlContent: string; options?: ConversionOptions } | null>(null);
   
   // Polling interval for checking conversion status
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -101,7 +132,7 @@ export const useConversionProgress = (): UseConversionProgressReturn => {
   /**
    * Progress callback function for the orchestrator
    */
-  const progressCallback = useCallback((progressInfo: any) => {
+  const progressCallback = useCallback((progressInfo: ProgressInfo) => {
     setState(prevState => ({
       ...prevState,
       progress: progressInfo.progress || 0,
@@ -119,13 +150,13 @@ export const useConversionProgress = (): UseConversionProgressReturn => {
     const poll = () => {
       const status = conversionOrchestrator.getConversionStatus(jobId) as ConversionStatusResponse;
       
-      if (status.error) {
-        // Job not found or other error
+      // Handle job not found or other errors
+      if (status.error || status.status === 'not_found') {
         setState(prevState => ({
           ...prevState,
           status: 'error',
-          error: { message: status.error },
-          message: status.error || 'Unknown error occurred'
+          error: { message: status.error || 'Job not found' },
+          message: status.error || 'Job not found'
         }));
         
         if (pollingIntervalRef.current) {
@@ -135,12 +166,13 @@ export const useConversionProgress = (): UseConversionProgressReturn => {
         return;
       }
 
+      // Update state with current status
       setState(prevState => ({
         ...prevState,
         progress: status.progress || 0,
-        status: status.status || 'processing',
+        status: (status.status as ConversionStatus) || 'processing',
         currentStep: status.currentStep || '',
-        message: status.message || '',
+        message: status.currentStep || '',
         currentStepIndex: Math.floor((status.progress || 0) / 16.67)
       }));
 
@@ -154,7 +186,7 @@ export const useConversionProgress = (): UseConversionProgressReturn => {
         // Get final result if completed
         if (status.status === 'completed') {
           const result = conversionOrchestrator.getConversionResult(jobId) as ConversionResultResponse;
-          if (result.status === 'completed') {
+          if (result.status === 'completed' && result.result) {
             setState(prevState => ({
               ...prevState,
               result: result.result,
@@ -168,9 +200,15 @@ export const useConversionProgress = (): UseConversionProgressReturn => {
           const errorInfo = conversionOrchestrator.getConversionError(jobId) as ConversionErrorResponse;
           setState(prevState => ({
             ...prevState,
-            error: errorInfo.error,
+            error: errorInfo.error || status.error,
             status: 'error',
             message: errorInfo.userMessage || 'Conversion failed'
+          }));
+        } else if (status.status === 'cancelled') {
+          setState(prevState => ({
+            ...prevState,
+            status: 'cancelled',
+            message: 'Conversion was cancelled'
           }));
         }
       }
@@ -184,7 +222,7 @@ export const useConversionProgress = (): UseConversionProgressReturn => {
   /**
    * Start a new conversion
    */
-  const startConversion = useCallback(async (htmlContent: string, options: any = {}) => {
+  const startConversion = useCallback(async (htmlContent: string, options: ConversionOptions = {}) => {
     try {
       // Reset state
       setState({
@@ -236,15 +274,24 @@ export const useConversionProgress = (): UseConversionProgressReturn => {
     if (state.jobId && (state.status === 'processing' || state.status === 'started')) {
       const result = conversionOrchestrator.cancelConversion(state.jobId) as ConversionCancelResponse;
       
+      // Handle successful cancellation
       if (result.status === 'cancelled') {
         setState(prevState => ({
           ...prevState,
           status: 'cancelled',
-          message: 'Conversion cancelled by user'
+          message: result.message || 'Conversion cancelled by user'
+        }));
+      } else if (result.error) {
+        // Handle cancellation errors (e.g., job not found, already completed)
+        setState(prevState => ({
+          ...prevState,
+          status: 'error',
+          error: { message: result.error },
+          message: result.error || 'Cancellation failed'
         }));
       }
 
-      // Stop polling
+      // Stop polling regardless of result
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
         pollingIntervalRef.current = null;
