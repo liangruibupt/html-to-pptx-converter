@@ -1,31 +1,37 @@
+/* Import Design System */
+@import './design-tokens.css';
+@import './animations.css';
+@import './components.css';
+@import './visual-feedback.css';
+
+/* Legacy CSS Variables for Backward Compatibility */
 :root {
-  --primary-color: #3498db;
-  --secondary-color: #2ecc71;
-  --background-color: #f8f9fa;
-  --text-color: #333;
-  --border-color: #ddd;
-  --error-color: #e74c3c;
-  --success-color: #27ae60;
-  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-    Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  --primary-color: var(--color-primary-500);
+  --secondary-color: var(--color-success-500);
+  --background-color: var(--color-background);
+  --text-color: var(--color-text-primary);
+  --border-color: var(--color-border);
+  --error-color: var(--color-error-500);
+  --success-color: var(--color-success-500);
+  --font-family: var(--font-family-primary);
   
-  /* Mobile-friendly spacing */
-  --spacing-xs: 0.25rem;
-  --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 1.5rem;
-  --spacing-xl: 2rem;
+  /* Mobile-friendly spacing - mapped to new tokens */
+  --spacing-xs: var(--space-1);
+  --spacing-sm: var(--space-2);
+  --spacing-md: var(--space-4);
+  --spacing-lg: var(--space-6);
+  --spacing-xl: var(--space-8);
   
   /* Touch-friendly sizes */
-  --touch-target-min: 44px;
-  --touch-target-comfortable: 48px;
-  --touch-target-large: 52px;
+  --touch-target-min: var(--touch-target-min);
+  --touch-target-comfortable: var(--touch-target-comfortable);
+  --touch-target-large: var(--touch-target-large);
   
   /* Responsive breakpoints */
-  --breakpoint-sm: 480px;
-  --breakpoint-md: 768px;
-  --breakpoint-lg: 1024px;
-  --breakpoint-xl: 1200px;
+  --breakpoint-sm: var(--breakpoint-sm);
+  --breakpoint-md: var(--breakpoint-md);
+  --breakpoint-lg: var(--breakpoint-lg);
+  --breakpoint-xl: var(--breakpoint-xl);
 }
 
 * {
@@ -35,10 +41,12 @@
 }
 
 body {
-  font-family: var(--font-family);
-  background-color: var(--background-color);
-  color: var(--text-color);
-  line-height: 1.6;
+  font-family: var(--font-family-primary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
   /* Prevent horizontal scrolling on mobile */
   overflow-x: hidden;
   /* Better text rendering */
@@ -46,6 +54,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
   /* Improve touch scrolling on iOS */
   -webkit-overflow-scrolling: touch;
+  /* Smooth transitions for theme changes */
+  transition: background-color var(--duration-normal) var(--ease-out),
+              color var(--duration-normal) var(--ease-out);
 }
 
 a {

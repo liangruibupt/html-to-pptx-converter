@@ -4,31 +4,35 @@
 }
 
 .dropzone {
-  border: 2px dashed var(--border-color);
-  border-radius: 8px;
-  padding: 2rem;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8);
   text-align: center;
-  background-color: #f9f9f9;
-  transition: all 0.3s ease;
+  background-color: var(--color-surface-variant);
+  transition: all var(--duration-normal) var(--ease-out);
   cursor: pointer;
   outline: none;
+  position: relative;
+  overflow: hidden;
 }
 
 .dropzone:hover {
-  border-color: var(--primary-color);
-  background-color: #f0f7fc;
+  border-color: var(--color-primary-500);
+  background-color: var(--color-primary-50);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }
 
 .dropzone.active {
-  border-color: var(--primary-color);
-  background-color: #e6f3fb;
+  border-color: var(--color-primary-500);
+  background-color: var(--color-primary-100);
+  animation: pulse 1s infinite;
 }
 
 .dropzone:focus {
-  border-color: var(--primary-color);
-  background-color: #f0f7fc;
-  outline: 3px solid var(--primary-color);
-  outline-offset: 2px;
+  border-color: var(--color-primary-500);
+  background-color: var(--color-primary-50);
+  box-shadow: 0 0 0 var(--focus-ring-width) rgba(33, 150, 243, var(--focus-ring-opacity));
 }
 
 .dropzone:focus-visible {
@@ -51,19 +55,27 @@
 .upload-icon {
   width: 64px;
   height: 64px;
-  margin-bottom: 1rem;
-  color: var(--primary-color);
+  margin-bottom: var(--space-4);
+  color: var(--color-primary-500);
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.dropzone:hover .upload-icon {
+  transform: scale(1.1);
+  color: var(--color-primary-600);
 }
 
 .upload-text {
-  font-size: 1.1rem;
-  margin-bottom: 0.5rem;
-  color: var(--text-color);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-2);
+  color: var(--color-text-primary);
 }
 
 .upload-hint {
-  font-size: 0.9rem;
-  color: #666;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-normal);
 }
 
 .upload-status {
