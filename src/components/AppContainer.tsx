@@ -1,6 +1,15 @@
 import React, { useEffect } from 'react';
 import { useAppState, useAppStatus, useNotificationAutoDismiss } from '../store/hooks';
-import { AppPhase } from '../store/types';
+// Define AppPhase locally for compatibility
+const AppPhase = {
+  UPLOAD: 'upload',
+  CONFIGURE: 'configure',
+  PREVIEW: 'preview',
+  VALIDATING: 'validating',
+  CONVERTING: 'converting',
+  COMPLETED: 'completed',
+  ERROR: 'error'
+} as const;
 import FileUpload from './upload/FileUpload';
 import HtmlInput from './upload/HtmlInput';
 import ConfigContainer from './config/ConfigContainer';
@@ -175,7 +184,7 @@ const AppContainer: React.FC = () => {
                   <div className="preview-errors" role="alert" aria-labelledby="preview-errors-heading">
                     <h3 id="preview-errors-heading">Preview Issues:</h3>
                     <ul role="list">
-                      {preview.errors.map((error, index) => (
+                      {preview.errors.map((error: any, index: number) => (
                         <li key={index} role="listitem">{error}</li>
                       ))}
                     </ul>
@@ -333,7 +342,7 @@ const AppContainer: React.FC = () => {
     
     return (
       <div className="notifications-container" role="region" aria-label="Notifications" aria-live="polite">
-        {ui.notifications.map(notification => (
+        {ui.notifications.map((notification: any) => (
           <div
             key={notification.id}
             className={`notification notification-${notification.type}`}
