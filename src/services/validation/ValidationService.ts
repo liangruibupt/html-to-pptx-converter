@@ -278,7 +278,7 @@ export class ValidationService {
     } catch (error) {
       const validationError = new ValidationError(
         `Configuration validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        { config: JSON.stringify(config).substring(0, 100) + '...' }
+        { additionalInfo: { config: JSON.stringify(config).substring(0, 100) + '...' } }
       );
       
       const handledError = this.errorHandler.handleError(validationError, {
@@ -352,12 +352,12 @@ export class ValidationService {
     } catch (error) {
       const validationError = new ValidationError(
         `File validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        { fileName: file?.name, fileSize: file?.size }
+        { additionalInfo: { fileName: file?.name, fileSize: file?.size } }
       );
       
       const handledError = this.errorHandler.handleError(validationError, {
         step: 'file_validation',
-        fileName: file?.name
+        additionalInfo: { fileName: file?.name }
       });
 
       result.errors.push(handledError.userMessage);

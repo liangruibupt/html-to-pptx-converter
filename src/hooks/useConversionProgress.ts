@@ -11,11 +11,13 @@ import { conversionOrchestrator } from '../services/ConversionOrchestrator.js';
  * - 5.2: Display a progress indicator during conversion
  */
 
+export type ConversionStatus = 'idle' | 'started' | 'processing' | 'completed' | 'error' | 'cancelled';
+
 export interface ConversionProgressState {
   /** Current progress percentage (0-100) */
   progress: number;
   /** Current conversion status */
-  status: 'idle' | 'started' | 'processing' | 'completed' | 'error' | 'cancelled';
+  status: ConversionStatus;
   /** Current step being processed */
   currentStep: string;
   /** Progress message */
@@ -28,6 +30,34 @@ export interface ConversionProgressState {
   error: any | null;
   /** Conversion result if completed */
   result: any | null;
+}
+
+export interface ConversionStatusResponse {
+  jobId?: string;
+  status?: ConversionStatus;
+  progress?: number;
+  currentStep?: string;
+  message?: string;
+  error?: string;
+}
+
+export interface ConversionStartResponse {
+  jobId: string;
+  status: ConversionStatus;
+}
+
+export interface ConversionResultResponse {
+  status: ConversionStatus;
+  result?: any;
+}
+
+export interface ConversionErrorResponse {
+  error: any;
+  userMessage?: string;
+}
+
+export interface ConversionCancelResponse {
+  status: ConversionStatus;
 }
 
 export interface UseConversionProgressReturn extends ConversionProgressState {
@@ -87,7 +117,7 @@ export const useConversionProgress = (): UseConversionProgressReturn => {
    */
   const pollConversionStatus = useCallback((jobId: string) => {
     const poll = () => {
-      const status = conversionOrchestrator.getConversionStatus(jobId);
+      const status = conversionOrchestrator.getConversionStatus(jobId) as ConversionStatusResponse;
       
       if (status.error) {
         // Job not found or other error
@@ -95,7 +125,7 @@ export const useConversionProgress = (): UseConversionProgressReturn => {
           ...prevState,
           status: 'error',
           error: { message: status.error },
-          message: status.error
+          message: status.error || 'Unknown error occurred'
         }));
         
         if (pollingIntervalRef.current) {
@@ -108,7 +138,7 @@ export const useConversionProgress = (): UseConversionProgressReturn => {
       setState(prevState => ({
         ...prevState,
         progress: status.progress || 0,
-        status: status.status as any,
+        status: status.status || 'processing',
         currentStep: status.currentStep || '',
         message: status.message || '',
         currentStepIndex: Math.floor((status.progress || 0) / 16.67)
@@ -123,7 +153,7 @@ export const useConversionProgress = (): UseConversionProgressReturn => {
 
         // Get final result if completed
         if (status.status === 'completed') {
-          const result = conversionOrchestrator.getConversionResult(jobId);
+          const result = conversionOrchestrator.getConversionResult(jobId) as ConversionResultResponse;
           if (result.status === 'completed') {
             setState(prevState => ({
               ...prevState,
@@ -135,7 +165,7 @@ export const useConversionProgress = (): UseConversionProgressReturn => {
           }
         } else if (status.status === 'error') {
           // Get error details
-          const errorInfo = conversionOrchestrator.getConversionError(jobId);
+          const errorInfo = conversionOrchestrator.getConversionError(jobId) as ConversionErrorResponse;
           setState(prevState => ({
             ...prevState,
             error: errorInfo.error,
@@ -176,7 +206,7 @@ export const useConversionProgress = (): UseConversionProgressReturn => {
         htmlContent,
         options,
         progressCallback
-      );
+      ) as ConversionStartResponse;
 
       // Update state with job ID
       setState(prevState => ({
@@ -204,7 +234,7 @@ export const useConversionProgress = (): UseConversionProgressReturn => {
    */
   const cancelConversion = useCallback(() => {
     if (state.jobId && (state.status === 'processing' || state.status === 'started')) {
-      const result = conversionOrchestrator.cancelConversion(state.jobId);
+      const result = conversionOrchestrator.cancelConversion(state.jobId) as ConversionCancelResponse;
       
       if (result.status === 'cancelled') {
         setState(prevState => ({

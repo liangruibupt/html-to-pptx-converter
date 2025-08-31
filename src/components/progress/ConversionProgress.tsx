@@ -72,7 +72,7 @@ export const ConversionProgress: React.FC<ConversionProgressProps> = ({
   const currentStepIndex = conversion.currentStepIndex;
   
   // Determine status based on conversion state
-  const getStatus = (): 'idle' | 'started' | 'processing' | 'completed' | 'error' => {
+  const getStatus = (): 'idle' | 'started' | 'processing' | 'completed' | 'error' | 'cancelled' => {
     if (conversion.error) return 'error';
     if (conversion.result && !conversion.isConverting) return 'completed';
     if (conversion.isConverting) return 'processing';
@@ -104,6 +104,8 @@ export const ConversionProgress: React.FC<ConversionProgressProps> = ({
         return 'success';
       case 'error':
         return 'error';
+      case 'cancelled':
+        return 'warning';
       case 'processing':
       case 'started':
         return 'primary';
@@ -119,6 +121,8 @@ export const ConversionProgress: React.FC<ConversionProgressProps> = ({
         return '✓';
       case 'error':
         return '✗';
+      case 'cancelled':
+        return '⊘';
       case 'processing':
       case 'started':
         return '⟳';
@@ -140,6 +144,8 @@ export const ConversionProgress: React.FC<ConversionProgressProps> = ({
         return 'Conversion completed!';
       case 'error':
         return 'Conversion failed';
+      case 'cancelled':
+        return 'Conversion cancelled';
       default:
         return '';
     }
@@ -148,7 +154,7 @@ export const ConversionProgress: React.FC<ConversionProgressProps> = ({
   // Calculate step progress
   const getStepProgress = (stepIndex: number) => {
     if (status === 'completed') return 100;
-    if (status === 'error') return stepIndex < currentStepIndex ? 100 : 0;
+    if (status === 'error' || status === 'cancelled') return stepIndex < currentStepIndex ? 100 : 0;
     
     if (stepIndex < currentStepIndex) return 100;
     if (stepIndex === currentStepIndex) {
@@ -213,7 +219,7 @@ export const ConversionProgress: React.FC<ConversionProgressProps> = ({
             const stepProgress = getStepProgress(index);
             const isActive = index === currentStepIndex;
             const isCompleted = stepProgress === 100;
-            const isFailed = status === 'error' && index === currentStepIndex;
+            const isFailed = (status === 'error' || status === 'cancelled') && index === currentStepIndex;
             
             return (
               <div 
@@ -228,11 +234,11 @@ export const ConversionProgress: React.FC<ConversionProgressProps> = ({
                     className="step-number"
                     aria-label={
                       isCompleted ? `Step ${index + 1} completed` :
-                      isFailed ? `Step ${index + 1} failed` :
+                      isFailed ? `Step ${index + 1} ${status === 'cancelled' ? 'cancelled' : 'failed'}` :
                       `Step ${index + 1}`
                     }
                   >
-                    {isCompleted ? '✓' : isFailed ? '✗' : index + 1}
+                    {isCompleted ? '✓' : isFailed ? (status === 'cancelled' ? '⊘' : '✗') : index + 1}
                   </div>
                   <div 
                     className="step-progress-bar"
@@ -264,6 +270,13 @@ export const ConversionProgress: React.FC<ConversionProgressProps> = ({
       {status === 'completed' && (
         <div className="success-message" role="status">
           <strong>Success:</strong> Your presentation has been generated successfully!
+        </div>
+      )}
+
+      {/* Cancelled Message */}
+      {status === 'cancelled' && (
+        <div className="cancelled-message" role="status">
+          <strong>Cancelled:</strong> The conversion process was cancelled by the user.
         </div>
       )}
     </div>

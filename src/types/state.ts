@@ -3,7 +3,7 @@
  */
 
 export interface ConversionState {
-  status: 'idle' | 'processing' | 'completed' | 'error';
+  status: 'idle' | 'processing' | 'completed' | 'error' | 'cancelled';
   progress: number;
   currentStep: string;
   error?: string;

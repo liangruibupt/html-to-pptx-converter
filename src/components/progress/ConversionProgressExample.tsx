@@ -225,10 +225,9 @@ export const ConversionProgressExample: React.FC = () => {
       {status !== 'idle' && (
         <ConversionProgress
           progress={progress}
-          status={status}
           currentStep={currentStep}
           message={message}
-          currentStepIndex={currentStepIndex}
+          isActive={isConverting}
           showSteps={true}
           animated={true}
           showCancel={canCancel}
