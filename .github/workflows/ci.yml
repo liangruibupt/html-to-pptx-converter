@@ -1,0 +1,29 @@
+name: CI
+
+# 只跑构建（tsc + vite build）。npm test 目前有 39 个用例本来就失败，
+# vitest 还会把 tests/e2e 下的 Playwright 用例收进来；修好以后再把 npm test 加进来。
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Typecheck and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: node --test .github/scripts/*.test.mjs
