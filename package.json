@@ -22,7 +22,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "@playwright/test": "^1.55.0",
+    "@playwright/test": "^1.63.0",
     "@types/node": "^20.0.0",
     "@vitejs/plugin-react": "^5.0.1",
     "ts-node": "^10.0.0",
