@@ -154,6 +154,52 @@ curl http://localhost:3000/api/conversions/{conversion-id}/download \
   -o presentation.pptx
 ```
 
+## Layout Mode (keep the HTML design)
+
+The default **semantic** mode reads headings, lists and tables and lays them out again with one of the built-in themes. That gives clean, editable slides, but the HTML's own design (colours, fonts, grids, card layouts) is replaced.
+
+**Layout** mode keeps the design. It renders the HTML in a real browser engine, measures where every box, border, line of text and image actually landed, and rebuilds each slide from native PowerPoint objects at the same positions:
+
+| HTML | PPTX |
+|---|---|
+| background colour, uniform border, `border-radius` | rectangle / rounded rectangle with fill and outline |
+| single-side borders (`border-top`, dividers) | line |
+| text, including inline `<em>` / `<strong>` / `<a>` | one editable text box per block, one run per style, hyperlinks kept |
+| the browser's line breaks | explicit line breaks, so wrapping does not change when PowerPoint substitutes a font |
+| list markers, text `::before` / `::after` | text |
+| `<img>`, `<svg>`, `<canvas>`, gradient or `url()` backgrounds | image (screenshot of just that element) |
+
+It works with HTML slide decks such as [frontend-slides](https://github.com/zarazhangrui/frontend-slides) and [beautiful-html-templates](https://github.com/zarazhangrui/beautiful-html-templates): slides are found by `section.slide`, `.slide`, reveal.js `section` and similar selectors, the deck's "current slide" class (`is-active`, `active`, `present` ...) is toggled for each slide, and entrance animations are fast-forwarded to their end state.
+
+### Command line
+
+```bash
+npx playwright install chromium   # once
+npm run convert:layout -- deck.html -o deck.pptx
+# fonts the audience may not have can be renamed:
+npm run convert:layout -- deck.html -o deck.pptx \
+  --font-map "Source Serif 4=Georgia;Noto Serif SC=SimSun;DM Sans=Arial"
+```
+
+Options: `--width/--height` (slide size in CSS px, default 1920x1080), `--slide-selector`, `--active-class` (`none` to disable), `--reflow` (let PowerPoint wrap text instead of keeping line breaks), `--scale` (image density), `--chrome <path>`, `--dump layout.json`. Requires Node 22.18+ (the script runs the TypeScript sources directly).
+
+### In code
+
+```ts
+// Browser (renders in an off-screen iframe)
+import { convertHtmlByLayout } from './src/services/layout';
+const { blob, deck } = await convertHtmlByLayout(html, { fontMap: { 'DM Sans': 'Arial' } });
+
+// Through the orchestrator
+await conversionOrchestrator.startConversion(html, { conversionMode: 'layout', layoutOptions: { fontMap } });
+```
+
+In the browser there is no screenshot API, so `<img>` is copied through a canvas (same-origin or CORS images only), `<svg>` is embedded as SVG, and gradient backgrounds fall back to their first colour. The CLI rasterises all of them exactly.
+
+### Limits
+
+`box-shadow`, `transform: rotate`, `clip-path`, `mix-blend-mode`, `background-clip: text` and CSS filters are not converted. Content clipped by `overflow: hidden` inside a slide is not clipped in the PPTX. Fonts must be installed where the deck is opened, or mapped with `--font-map`.
+
 ## Configuration
 
 The service can be configured using environment variables:

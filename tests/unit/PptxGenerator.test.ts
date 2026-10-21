@@ -8,7 +8,8 @@ vi.mock('pptxgenjs', () => {
   const addImageMock = vi.fn();
   const addTableMock = vi.fn();
   const defineSlideMasterMock = vi.fn();
-  const writeFileMock = vi.fn().mockResolvedValue(new Blob(['mock-content']));
+  const writeFileMock = vi.fn().mockResolvedValue('presentation.pptx');
+  const writeMock = vi.fn().mockResolvedValue(new Blob(['mock-content']));
   
   const slideMock = {
     addText: addTextMock,
@@ -27,7 +28,8 @@ vi.mock('pptxgenjs', () => {
       theme: {},
       addSlide: addSlideMock,
       defineSlideMaster: defineSlideMasterMock,
-      writeFile: writeFileMock
+      writeFile: writeFileMock,
+      write: writeMock
     }))
   };
 });
@@ -294,9 +296,11 @@ describe('PptxGenerator', () => {
       const blob = await pptxGenerator.savePresentation(presentation, 'test-presentation');
       
       expect(blob).toBeInstanceOf(Blob);
-      expect(presentation.writeFile).toHaveBeenCalledWith({
+      expect(presentation.write).toHaveBeenCalledWith({
         outputType: 'blob'
       });
+      // writeFile() would trigger a browser download and resolves with a file name
+      expect(presentation.writeFile).not.toHaveBeenCalled();
     });
     
     it('should save as blob without filename to prevent file creation', async () => {
@@ -304,7 +308,7 @@ describe('PptxGenerator', () => {
       
       await pptxGenerator.savePresentation(presentation);
       
-      expect(presentation.writeFile).toHaveBeenCalledWith({
+      expect(presentation.write).toHaveBeenCalledWith({
         outputType: 'blob'
       });
     });

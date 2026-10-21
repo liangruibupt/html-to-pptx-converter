@@ -477,9 +477,9 @@ export class PptxGenerator implements PptxGeneratorService {
    */
   async savePresentation(presentation: any, fileName?: string): Promise<Blob> {
     try {
-      // Save the presentation as a blob without fileName to prevent file creation
-      // The fileName parameter is only used for actual file downloads, not blob generation
-      const blob = await presentation.writeFile({ outputType: 'blob' });
+      // Generate the blob without triggering a download. pptxgenjs 4's writeFile()
+      // downloads the file and resolves with the file name, not the blob.
+      const blob = await presentation.write({ outputType: 'blob' });
       
       return blob;
     } catch (error) {

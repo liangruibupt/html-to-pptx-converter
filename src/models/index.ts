@@ -15,7 +15,14 @@ export interface ConversionConfig {
   customSectionSelector?: string;
   preserveLinks: boolean;
   customStyles: Record<string, any>;
+  /**
+   * 'semantic' (default): rebuild slides from headings, lists and tables with a theme.
+   * 'layout': keep the rendered HTML design as positioned native shapes and text.
+   */
+  conversionMode?: ConversionMode;
 }
+
+export type ConversionMode = 'semantic' | 'layout';
 
 export enum SlideLayout {
   STANDARD = 'STANDARD',
