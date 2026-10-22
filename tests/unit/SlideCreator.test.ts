@@ -351,7 +351,7 @@ describe('SlideCreator', () => {
       expect(mockPptxGenerator.addImageElement).toHaveBeenCalledWith(
         mockSlide,
         imageResource,
-        expect.objectContaining({ x: 1, y: 2 })
+        expect.objectContaining({ x: 1, y: 1.5 })
       );
     });
     
@@ -429,7 +429,7 @@ describe('SlideCreator', () => {
         }),
         expect.objectContaining({
           x: 0.5,
-          y: 2,
+          y: 1.5,
           w: '90%'
         })
       );
@@ -470,7 +470,7 @@ describe('SlideCreator', () => {
         }),
         expect.objectContaining({
           x: 0.5,
-          y: 2,
+          y: 1.5,
           w: '90%'
         })
       );
@@ -507,7 +507,7 @@ describe('SlideCreator', () => {
         processedLink,
         expect.objectContaining({
           x: 0.5,
-          y: 2,
+          y: 1.5,
           w: '90%',
           hyperlink: { url: 'https://example.com' }
         })
@@ -617,7 +617,7 @@ describe('SlideCreator', () => {
         processedImage,
         expect.objectContaining({
           x: 1,
-          y: 2,
+          y: 1.5,
           w: 3, // 300 / 100
           h: 1.8 // 180 / 100
         })

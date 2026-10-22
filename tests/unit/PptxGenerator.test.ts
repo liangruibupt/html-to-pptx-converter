@@ -225,7 +225,7 @@ describe('PptxGenerator', () => {
       pptxGenerator.addListElement(slide, listResource);
       
       expect(slide.addText).toHaveBeenCalledWith(
-        ['Item 1', 'Item 2', 'Item 3'].map((text) => ({ text, options: { breakLine: true } })),
+        ['Item 1', 'Item 2', 'Item 3'].map((text) => ({ text, options: { breakLine: true, bullet: { type: 'bullet', code: '•' } } })),
         expect.objectContaining({
           bullet: { type: 'bullet', code: '•' }
         })
@@ -248,7 +248,11 @@ describe('PptxGenerator', () => {
       pptxGenerator.addListElement(slide, listResource);
       
       expect(slide.addText).toHaveBeenCalledWith(
-        ['Item 1', 'Item 2', 'Item 3'].map((text) => ({ text, options: { breakLine: true } })),
+        // every paragraph carries the bullet, numbered ones their own number
+        ['Item 1', 'Item 2', 'Item 3'].map((text, i) => ({
+          text,
+          options: { breakLine: true, bullet: { type: 'number', numberType: 'upperLetter', startAt: 3 + i } }
+        })),
         expect.objectContaining({
           bullet: { type: 'number', numberType: 'upperLetter', startAt: 3 }
         })
