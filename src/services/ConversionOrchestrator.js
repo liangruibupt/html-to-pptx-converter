@@ -9,6 +9,7 @@ import { LinkHandler } from './conversion/LinkHandler.ts';
 import { ThemeHandler } from './conversion/ThemeHandler.ts';
 import { ErrorHandler } from './error/ErrorHandler.ts';
 import { conversionErrorRecoveryService } from './conversion/ConversionErrorRecovery.ts';
+import { convertHtmlByLayout } from './layout/BrowserLayoutConverter.ts';
 
 /**
  * ConversionOrchestrator - Main service for orchestrating HTML to PPTX conversions
@@ -291,7 +292,15 @@ export class ConversionOrchestrator {
       
       // Image processing options
       imageOptions: typeof options.imageOptions === 'object' && options.imageOptions !== null
-        ? options.imageOptions : {}
+        ? options.imageOptions : {},
+
+      // 'semantic' (default) rebuilds slides from headings/lists/tables with a theme;
+      // 'layout' keeps the HTML's rendered design as positioned native shapes.
+      conversionMode: options.conversionMode === 'layout' ? 'layout' : 'semantic',
+
+      // Layout-mode settings (ignored in semantic mode)
+      layoutOptions: typeof options.layoutOptions === 'object' && options.layoutOptions !== null
+        ? options.layoutOptions : {}
     };
 
     return validatedOptions;
@@ -463,6 +472,11 @@ export class ConversionOrchestrator {
     const job = this.conversions.get(jobId);
     
     try {
+      if (job.options.conversionMode === 'layout') {
+        await this._executeLayoutConversion(job);
+        return;
+      }
+
       // Step 1: Parse HTML
       this._updateProgress(jobId, 'processing', 10, 'Parsing HTML content');
       const parsedContent = await this._parseHtml(job.htmlContent, job.options);
@@ -517,6 +531,34 @@ export class ConversionOrchestrator {
       
       this._updateProgress(jobId, 'error', 100, userMessage);
     }
+  }
+
+  /**
+   * Layout mode: render the HTML, measure the result and rebuild every slide
+   * from positioned native shapes and editable text boxes.
+   * @private
+   * @param {Object} job - The conversion job
+   */
+  async _executeLayoutConversion(job) {
+    const jobId = job.id;
+    this._updateProgress(jobId, 'processing', 15, 'Rendering HTML for layout measurement');
+    const { blob, deck } = await convertHtmlByLayout(job.htmlContent, job.options.layoutOptions);
+    this._updateProgress(jobId, 'processing', 85, `Measured ${deck.slides.length} slides, generating PPTX`);
+    if (!blob || blob.size === 0) {
+      const error = new Error('Generated PPTX file is empty or invalid');
+      error.code = 'EMPTY_PPTX_FILE';
+      error.recoverable = true;
+      error.category = 'GENERATION';
+      throw error;
+    }
+    this._updateProgress(jobId, 'processing', 95, 'Finalizing conversion');
+    const result = await this._finalizeConversion(blob, job.options);
+    result.slideCount = deck.slides.length;
+    result.metadata.options.conversionMode = 'layout';
+    result.metadata.layoutWarnings = deck.warnings;
+    job.result = result;
+    job.completedAt = new Date();
+    this._updateProgress(jobId, 'completed', 100, 'Conversion completed successfully');
   }
 
   /**

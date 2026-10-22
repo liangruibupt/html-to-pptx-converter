@@ -34,7 +34,10 @@ export const defaultConfig: ConversionConfig = {
   preserveLinks: true,
   
   // No custom styles by default
-  customStyles: {}
+  customStyles: {},
+
+  // Rebuild slides from the document structure (headings, lists, tables)
+  conversionMode: 'semantic'
 };
 
 /**

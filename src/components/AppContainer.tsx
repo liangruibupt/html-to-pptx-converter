@@ -17,7 +17,16 @@ import HtmlPreview from './preview/HtmlPreview';
 import ConversionProgress from './progress/ConversionProgress';
 import DownloadManager from './download/DownloadManager';
 import { ConversionErrorRecovery } from './error/ConversionErrorRecovery';
+import { conversionOrchestrator } from '../services/ConversionOrchestrator.js';
 import './AppContainer.css';
+
+interface ConversionProgressEvent {
+  jobId: string;
+  status: string;
+  progress: number;
+  message: string;
+  currentStep: string;
+}
 
 /**
  * Main Application Container Component
@@ -36,11 +45,20 @@ const AppContainer: React.FC = () => {
   
   // Auto-dismiss notifications
   useNotificationAutoDismiss();
+
+  // The preview step renders the HTML as-is; once it is on screen the user can
+  // convert. Nothing else completes the preview, so do it here.
+  useEffect(() => {
+    if (ui.currentPhase === AppPhase.PREVIEW && preview.isGenerating && upload.htmlContent) {
+      preview.previewSuccess({ html: upload.htmlContent }, []);
+    }
+  }, [ui.currentPhase, preview.isGenerating, upload.htmlContent]);
   
   // Handle file upload success
   const handleFileUploadSuccess = (content: string) => {
     upload.setContent(content, 'file');
     validation.validateUpload(content);
+    validation.validateConfiguration(configuration.config);
     ui.setSuccessMessage('HTML file uploaded successfully!');
   };
   
@@ -54,6 +72,7 @@ const AppContainer: React.FC = () => {
   const handleHtmlInputSuccess = (content: string) => {
     upload.setContent(content, 'direct');
     validation.validateUpload(content);
+    validation.validateConfiguration(configuration.config);
     ui.setSuccessMessage('HTML content added successfully!');
   };
   
@@ -83,11 +102,63 @@ const AppContainer: React.FC = () => {
     }
   };
   
-  // Handle start conversion
-  const handleStartConversion = () => {
-    if (upload.htmlContent && validation.isValid) {
-      const jobId = `conversion-${Date.now()}`;
+  // Handle start conversion: run the orchestrator with the chosen mode and
+  // mirror its progress into the store.
+  const handleStartConversion = async () => {
+    if (!upload.htmlContent || !validation.isValid) return;
+    const config = configuration.config;
+    const options = {
+      conversionMode: config.conversionMode ?? 'semantic',
+      slideLayout: config.slideLayout,
+      includeImages: config.includeImages,
+      preserveLinks: config.preserveLinks,
+      theme: config.theme,
+      splitStrategy: config.splitSections,
+      customSelector: config.customSectionSelector,
+      imageOptions: config.imageOptions,
+      customStyles: config.customStyles,
+      filename: upload.originalFilename
+        ? upload.originalFilename.replace(/\.html?$/i, '') + '.pptx'
+        : undefined
+    };
+
+    // The orchestrator reports its first step before startConversion() resolves
+    // with the job id, so hold events until the store knows the job.
+    let started = false;
+    const pending: ConversionProgressEvent[] = [];
+    const onProgress = (event: ConversionProgressEvent) => {
+      if (!started) {
+        pending.push(event);
+        return;
+      }
+      applyProgress(event);
+    };
+
+    try {
+      const { jobId } = (await conversionOrchestrator.startConversion(upload.htmlContent, options, onProgress)) as { jobId: string };
       globalActions.startConversionWorkflow(jobId);
+      started = true;
+      pending.splice(0).forEach(applyProgress);
+    } catch (error: any) {
+      globalActions.failConversionWorkflow({ message: error?.message || String(error) });
+    }
+  };
+
+  const applyProgress = (event: ConversionProgressEvent) => {
+    if (event.status === 'completed') {
+      const { result } = conversionOrchestrator.getConversionResult(event.jobId) as any;
+      globalActions.completeConversionWorkflow(result, {
+        filename: result.filename,
+        size: result.size,
+        downloadUrl: result.downloadUrl,
+        mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        preparedAt: new Date(),
+        autoTriggered: false
+      });
+    } else if (event.status === 'error') {
+      globalActions.failConversionWorkflow({ message: event.message, userMessage: event.message });
+    } else {
+      conversion.updateProgress(event.progress, event.currentStep, event.message, 0);
     }
   };
   
