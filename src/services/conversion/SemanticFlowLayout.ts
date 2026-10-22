@@ -55,20 +55,35 @@ export function resolveWidthIn(w: unknown, slideWidthIn: number, fallbackIn = sl
   return fallbackIn;
 }
 
-/** Plain text of an HTML snippet (tags removed, entities decoded where a DOM is available). */
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
+};
+
+/** Decode the common named and all numeric HTML entities, without a DOM. */
+function decodeEntities(s: string): string {
+  return s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, body: string) => {
+    if (body[0] === '#') {
+      const code = body[1] === 'x' || body[1] === 'X' ? parseInt(body.slice(2), 16) : parseInt(body.slice(1), 10);
+      return Number.isFinite(code) && code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : m;
+    }
+    return NAMED_ENTITIES[body.toLowerCase()] ?? m;
+  });
+}
+
+/**
+ * Plain text of an HTML snippet: tags removed, entities decoded.
+ * Deliberately string-based: parsing via innerHTML would execute inline
+ * event handlers (e.g. <img onerror>) from untrusted input. Only used to
+ * estimate text height, so exact HTML parsing is not needed.
+ */
 export function plainText(html: unknown): string {
   if (html == null) return '';
   if (typeof html === 'object') {
     const t = (html as { text?: unknown }).text;
     return typeof t === 'string' ? plainText(t) : '';
   }
-  const s = String(html);
-  if (typeof document !== 'undefined' && typeof document.createElement === 'function') {
-    const el = document.createElement('div');
-    el.innerHTML = s;
-    return (el.textContent || '').replace(/\s+/g, ' ').trim();
-  }
-  return s.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  const stripped = String(html).replace(/<[^>]*>/g, ' ');
+  return decodeEntities(stripped).replace(/\s+/g, ' ').trim();
 }
 
 /**

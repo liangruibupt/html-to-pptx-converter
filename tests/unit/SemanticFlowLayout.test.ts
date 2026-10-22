@@ -11,6 +11,7 @@ import {
   estimateLines,
   estimateTextHeightIn,
   fitFontSize,
+  plainText,
   resolveWidthIn,
   slideSizeFor,
   MIN_FONT_PT
@@ -85,6 +86,15 @@ describe('SemanticFlowLayout estimates', () => {
     expect(size).toBeLessThan(18);
     expect(estimateTextHeightIn(text, size, 9)).toBeLessThanOrEqual(2);
     expect(fitFontSize(text.repeat(50), 18, 9, 0.5)).toBe(MIN_FONT_PT);
+  });
+
+  it('extracts plain text without parsing the HTML in the DOM', () => {
+    expect(plainText('<b>A&amp;B</b> &lt;tag&gt; &#26085;&#x672C;')).toBe('A&B <tag> 日本');
+    expect(plainText({ text: '<i>x</i>  y' })).toBe('x y');
+    // innerHTML would fire this handler; a string-based strip never does
+    (globalThis as { __pwned?: boolean }).__pwned = false;
+    expect(plainText('<img src=x onerror="globalThis.__pwned=true">ok')).toBe('ok');
+    expect((globalThis as { __pwned?: boolean }).__pwned).toBe(false);
   });
 });
 
