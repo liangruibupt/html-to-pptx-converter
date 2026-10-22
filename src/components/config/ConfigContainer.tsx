@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ConversionConfig, SlideLayout, PresentationTheme, SplitStrategy } from '../../models';
+import { ConversionConfig, ConversionMode, SlideLayout, PresentationTheme, SplitStrategy } from '../../models';
 import { useConfiguration, useUI } from '../../store/hooks';
+import ConversionModeConfig, { formatConversionMode } from './ConversionModeConfig';
 import SlideLayoutConfig from './SlideLayoutConfig';
 import ImageHandlingConfig from './ImageHandlingConfig';
 import ThemeSelectionConfig from './ThemeSelectionConfig';
@@ -76,6 +77,16 @@ const ConfigContainer: React.FC<ConfigContainerProps> = ({ initialConfig, onConf
     setLocalConfig(configuration.config);
   }, [configuration.config]);
 
+  const handleConversionModeChange = (conversionMode: ConversionMode) => {
+    const updatedConfig = { conversionMode };
+    configuration.updateConfig(updatedConfig);
+    setLocalConfig(prev => ({ ...prev, ...updatedConfig }));
+    onConfigChange({ ...localConfig, ...updatedConfig });
+    ui.addNotification('info', 'Configuration Updated', `Conversion mode changed to ${formatConversionMode(conversionMode)}`);
+  };
+
+  const isLayoutMode = localConfig.conversionMode === 'layout';
+
   const handleSlideLayoutChange = (layout: SlideLayout) => {
     const updatedConfig = {
       slideLayout: layout
@@ -140,32 +151,48 @@ const ConfigContainer: React.FC<ConfigContainerProps> = ({ initialConfig, onConf
         </button>
       </div>
       
-      <SlideLayoutConfig 
-        initialLayout={localConfig.slideLayout}
-        onChange={handleSlideLayoutChange}
+      <ConversionModeConfig
+        value={localConfig.conversionMode ?? 'semantic'}
+        onChange={handleConversionModeChange}
       />
-      
-      <ImageHandlingConfig
-        initialIncludeImages={localConfig.includeImages}
-        initialOptions={{
-          preserveAspectRatio: localConfig.imageOptions?.preserveAspectRatio || true,
-          quality: localConfig.imageOptions?.quality || 80,
-          maxWidth: localConfig.imageOptions?.maxWidth,
-          maxHeight: localConfig.imageOptions?.maxHeight
-        }}
-        onChange={handleImageConfigChange}
-      />
-      
-      <ThemeSelectionConfig
-        initialTheme={localConfig.theme}
-        onChange={handleThemeChange}
-      />
-      
-      <SectionSplittingConfig
-        initialStrategy={localConfig.splitSections}
-        initialCustomSelector={localConfig.customSectionSelector}
-        onChange={handleSectionSplittingChange}
-      />
+
+      {isLayoutMode ? (
+        <p className="layout-mode-note" role="note">
+          Slides, size, colours and fonts come from the HTML itself, so the layout, image, theme
+          and section-splitting settings do not apply. Each element the deck shows as a slide
+          (for example <code>&lt;section class="slide"&gt;</code>) becomes one PowerPoint slide,
+          rendered at 1920&times;1080. Images and gradients are embedded as pictures; all text stays editable.
+        </p>
+      ) : (
+        <>
+          <SlideLayoutConfig 
+            initialLayout={localConfig.slideLayout}
+            onChange={handleSlideLayoutChange}
+          />
+          
+          <ImageHandlingConfig
+            initialIncludeImages={localConfig.includeImages}
+            initialOptions={{
+              preserveAspectRatio: localConfig.imageOptions?.preserveAspectRatio || true,
+              quality: localConfig.imageOptions?.quality || 80,
+              maxWidth: localConfig.imageOptions?.maxWidth,
+              maxHeight: localConfig.imageOptions?.maxHeight
+            }}
+            onChange={handleImageConfigChange}
+          />
+          
+          <ThemeSelectionConfig
+            initialTheme={localConfig.theme}
+            onChange={handleThemeChange}
+          />
+          
+          <SectionSplittingConfig
+            initialStrategy={localConfig.splitSections}
+            initialCustomSelector={localConfig.customSectionSelector}
+            onChange={handleSectionSplittingChange}
+          />
+        </>
+      )}
       
       <div className="config-summary" role="region" aria-labelledby="config-summary-heading">
         <h3 id="config-summary-heading">Current Configuration</h3>
@@ -173,14 +200,19 @@ const ConfigContainer: React.FC<ConfigContainerProps> = ({ initialConfig, onConf
           Your presentation will use the following settings:
         </p>
         <ul className="config-list" role="list" aria-label="Current configuration settings">
-          <li role="listitem"><strong>Slide Layout:</strong> {formatSlideLayout(localConfig.slideLayout)}</li>
-          <li role="listitem"><strong>Theme:</strong> {formatTheme(localConfig.theme)}</li>
-          <li role="listitem"><strong>Section Splitting:</strong> {formatSplitStrategy(localConfig.splitSections)}</li>
-          <li role="listitem"><strong>Images:</strong> {localConfig.includeImages ? 'Included' : 'Excluded'}</li>
-          {localConfig.includeImages && localConfig.imageOptions && (
-            <li className="nested-item" role="listitem">
-              <strong>Image Quality:</strong> {localConfig.imageOptions.quality}%
-            </li>
+          <li role="listitem"><strong>Conversion Mode:</strong> {formatConversionMode(localConfig.conversionMode)}</li>
+          {!isLayoutMode && (
+            <>
+              <li role="listitem"><strong>Slide Layout:</strong> {formatSlideLayout(localConfig.slideLayout)}</li>
+              <li role="listitem"><strong>Theme:</strong> {formatTheme(localConfig.theme)}</li>
+              <li role="listitem"><strong>Section Splitting:</strong> {formatSplitStrategy(localConfig.splitSections)}</li>
+              <li role="listitem"><strong>Images:</strong> {localConfig.includeImages ? 'Included' : 'Excluded'}</li>
+              {localConfig.includeImages && localConfig.imageOptions && (
+                <li className="nested-item" role="listitem">
+                  <strong>Image Quality:</strong> {localConfig.imageOptions.quality}%
+                </li>
+              )}
+            </>
           )}
         </ul>
       </div>

@@ -1,0 +1,86 @@
+.conversion-mode-config {
+  margin: 0 0 2rem;
+  padding: 0;
+  border: 0;
+}
+
+.conversion-mode-config legend {
+  margin-bottom: 0.5rem;
+  padding: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.conversion-mode-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.conversion-mode-option {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  color: #333;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.conversion-mode-option:hover {
+  border-color: #c0c0c0;
+  background-color: #f0f0f0;
+}
+
+.conversion-mode-option.selected {
+  border-color: #4a90e2;
+  background-color: #f0f7ff;
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.2);
+}
+
+.conversion-mode-option:focus-within {
+  outline: 3px solid #4a90e2;
+  outline-offset: 2px;
+}
+
+.conversion-mode-option input {
+  margin-top: 0.2rem;
+  accent-color: #4a90e2;
+}
+
+.conversion-mode-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.conversion-mode-name {
+  font-weight: 600;
+}
+
+.conversion-mode-description {
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #555;
+}
+
+.conversion-mode-description em {
+  display: block;
+  margin-top: 0.25rem;
+  font-style: normal;
+  color: #333;
+}
+
+.layout-mode-note {
+  margin: 0 0 2rem;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid #4a90e2;
+  background-color: #f0f7ff;
+  color: #333;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}

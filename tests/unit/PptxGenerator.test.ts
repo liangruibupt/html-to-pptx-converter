@@ -225,7 +225,7 @@ describe('PptxGenerator', () => {
       pptxGenerator.addListElement(slide, listResource);
       
       expect(slide.addText).toHaveBeenCalledWith(
-        ['Item 1', 'Item 2', 'Item 3'],
+        ['Item 1', 'Item 2', 'Item 3'].map((text) => ({ text, options: { breakLine: true } })),
         expect.objectContaining({
           bullet: { type: 'bullet', code: '•' }
         })
@@ -248,7 +248,7 @@ describe('PptxGenerator', () => {
       pptxGenerator.addListElement(slide, listResource);
       
       expect(slide.addText).toHaveBeenCalledWith(
-        ['Item 1', 'Item 2', 'Item 3'],
+        ['Item 1', 'Item 2', 'Item 3'].map((text) => ({ text, options: { breakLine: true } })),
         expect.objectContaining({
           bullet: { type: 'number', numberType: 'upperLetter', startAt: 3 }
         })

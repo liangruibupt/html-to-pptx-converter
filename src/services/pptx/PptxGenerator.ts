@@ -428,8 +428,12 @@ export class PptxGenerator implements PptxGeneratorService {
         ...options
       };
       
-      // Add list to slide
-      slide.addText(listItems, listOptions);
+      // Add list to slide. pptxgenjs needs text-run objects (not bare strings)
+      // when given an array; breakLine puts each item on its own bullet line.
+      const runs = (listItems as any[]).map((item) =>
+        typeof item === 'string' ? { text: item, options: { breakLine: true } } : item
+      );
+      slide.addText(runs, listOptions);
     } catch (error) {
       throw new PptxGenerationError(
         `Failed to add list element: ${error instanceof Error ? error.message : String(error)}`
