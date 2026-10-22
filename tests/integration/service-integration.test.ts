@@ -526,7 +526,9 @@ describe('Service Integration Tests', () => {
       const presentation = await slideCreator.createSlides(parseResult, config);
       const conversionTime = performance.now() - conversionStartTime;
 
-      expect(presentation.slides.length).toBe(50);
+      // Each section's paragraph fills a slide on its own, so its list moves to a
+      // "(cont.)" slide instead of being drawn on top of the paragraph.
+      expect(presentation.slides.length).toBe(100);
       expect(conversionTime).toBeLessThan(5000); // Should convert within 5 seconds
     });
 

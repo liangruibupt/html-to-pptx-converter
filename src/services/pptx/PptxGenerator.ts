@@ -1,6 +1,7 @@
 import pptxgen from 'pptxgenjs';
 import { SlideLayout, PresentationTheme, ImageResource, TableResource, ListResource, LinkResource, TextResource } from '../../models';
 import { PptxGeneratorService, PptxGenerationError } from './PptxGeneratorInterface';
+import { textResourceFontPt } from '../conversion/SemanticFlowLayout';
 
 /**
  * PPTX Generator Service Implementation
@@ -181,29 +182,9 @@ export class PptxGenerator implements PptxGeneratorService {
       // Extract text content (remove HTML tags if present)
       const content = this.stripHtmlTags(text.content);
       
-      // Determine font size based on heading level
-      let fontSize = 18;
-      if (text.format.headingLevel) {
-        switch (text.format.headingLevel) {
-          case 1:
-            fontSize = 24;
-            break;
-          case 2:
-            fontSize = 20;
-            break;
-          case 3:
-            fontSize = 18;
-            break;
-          default:
-            fontSize = 16;
-        }
-      } else if (text.format.fontSize) {
-        // Extract numeric value from fontSize string (e.g., "18px" -> 18)
-        const fontSizeMatch = text.format.fontSize.match(/(\d+)/);
-        if (fontSizeMatch && fontSizeMatch[1]) {
-          fontSize = parseInt(fontSizeMatch[1], 10);
-        }
-      }
+      // Font size from heading level or the element's font-size (same rule the
+      // semantic flow layout uses to estimate the box height)
+      const fontSize = textResourceFontPt(text.format);
       
       // Convert color format if needed (e.g., "#FF0000" -> "FF0000")
       let color = text.format.color || '333333';
@@ -430,8 +411,16 @@ export class PptxGenerator implements PptxGeneratorService {
       
       // Add list to slide. pptxgenjs needs text-run objects (not bare strings)
       // when given an array; breakLine puts each item on its own bullet line.
-      const runs = (listItems as any[]).map((item) =>
-        typeof item === 'string' ? { text: item, options: { breakLine: true } } : item
+      // The bullet must sit on every run: pptxgenjs only applies a box-level
+      // bullet to the first paragraph, so items 2..n rendered without one.
+      // Numbered items carry their own startAt, since LibreOffice restarts the
+      // count on every paragraph that names one (pptxgenjs always writes it).
+      const baseStart = bullet?.type === 'number' ? (bullet.startAt || 1) : 0;
+      const bulletFor = (i: number) => (baseStart ? { ...bullet, startAt: baseStart + i } : bullet);
+      const runs = (listItems as any[]).map((item, i) =>
+        typeof item === 'string'
+          ? { text: item, options: { breakLine: true, bullet: bulletFor(i) } }
+          : { ...item, options: { bullet: bulletFor(i), ...(item?.options || {}) } }
       );
       slide.addText(runs, listOptions);
     } catch (error) {

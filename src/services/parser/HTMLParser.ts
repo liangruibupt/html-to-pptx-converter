@@ -68,21 +68,8 @@ export class HTMLParser implements HTMLParserService {
         // Create a temporary document to parse the section content
         const sectionDoc = parser.parseFromString(section.content, 'text/html');
         
-        // Extract elements from the section
-        const sectionImages = this.extractImages(sectionDoc);
-        const sectionTables = this.extractTables(sectionDoc);
-        const sectionLists = this.extractLists(sectionDoc);
-        const sectionTexts = this.extractFormattedText(sectionDoc);
-        const sectionLinks = this.extractLinks(sectionDoc);
-        
-        // Add elements to the section
-        section.elements = [
-          ...sectionImages.map(img => ({ type: 'image' as const, content: img })),
-          ...sectionTables.map(table => ({ type: 'table' as const, content: table })),
-          ...sectionLists.map(list => ({ type: 'list' as const, content: list })),
-          ...sectionTexts.map(text => ({ type: 'text' as const, content: text })),
-          ...sectionLinks.map(link => ({ type: 'link' as const, content: link }))
-        ];
+        // Extract the section's elements in document order
+        section.elements = this.extractOrderedElements(sectionDoc, section.title);
       });
       
       // Return the parsed HTML content
@@ -368,6 +355,76 @@ export class HTMLParser implements HTMLParserService {
     return 'Untitled';
   }
 
+  /**
+   * Extract a section's elements in document order.
+   *
+   * Each block is emitted once: the heading that became the slide title is
+   * dropped (the slide already shows it), and anything nested inside a block
+   * that was already taken -- a <strong> inside a <p>, a link inside a list
+   * item, text inside a table cell -- is not emitted a second time. Images are
+   * the exception: they are kept wherever they sit, since the text of their
+   * container does not include them.
+   *
+   * @param doc - Document holding the section's HTML
+   * @param title - The section's slide title
+   * @returns Slide elements in the order they appear in the HTML
+   */
+  extractOrderedElements(doc: Document, title?: string): SlideElement[] {
+    const textSelector = 'p, h1, h2, h3, h4, h5, h6, span, div:not(:has(>*)), b, strong, i, em, u, s, strike, sup, sub';
+    const nodes = Array.from(doc.querySelectorAll(`img, table, ul, ol, a[href], ${textSelector}`));
+    const taken = new Set<Element>();
+    const elements: SlideElement[] = [];
+    const wantedTitle = (title || '').trim();
+    let titleDropped = !wantedTitle || wantedTitle === 'Untitled';
+    const parser = new DOMParser();
+    
+    const insideTaken = (el: Element): boolean => {
+      for (let p = el.parentElement; p; p = p.parentElement) {
+        if (taken.has(p)) return true;
+      }
+      return false;
+    };
+    // Run an existing extractor on just this node and keep its first result
+    const single = <T>(node: Element, extract: (d: Document) => T[]): T | undefined =>
+      extract.call(this, parser.parseFromString(node.outerHTML, 'text/html'))[0];
+    
+    for (const node of nodes) {
+      const tag = node.tagName.toLowerCase();
+      if (tag !== 'img' && insideTaken(node)) continue;
+      
+      if (!titleDropped && /^h[1-6]$/.test(tag) && (node.textContent || '').trim() === wantedTitle) {
+        titleDropped = true;
+        taken.add(node);
+        continue;
+      }
+      
+      let element: SlideElement | undefined;
+      if (tag === 'img') {
+        const content = single(node, this.extractImages);
+        if (content) element = { type: 'image', content };
+      } else if (tag === 'table') {
+        const content = single(node, this.extractTables);
+        if (content) element = { type: 'table', content };
+      } else if (tag === 'ul' || tag === 'ol') {
+        const content = single(node, this.extractLists);
+        if (content) element = { type: 'list', content };
+      } else if (tag === 'a') {
+        const content = single(node, this.extractLinks);
+        if (content) element = { type: 'link', content };
+      } else {
+        const content = single(node, this.extractFormattedText);
+        if (content) element = { type: 'text', content };
+      }
+      
+      if (element) {
+        elements.push(element);
+        taken.add(node);
+      }
+    }
+    
+    return elements;
+  }
+  
   /**
    * Extract images from HTML document
    * 
