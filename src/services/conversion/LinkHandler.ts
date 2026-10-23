@@ -96,12 +96,12 @@ export class LinkHandler implements LinkHandlerService {
    */
   extractLinkText(html: string): string {
     try {
-      // Create a temporary element to parse the HTML
-      const tempElement = document.createElement('div');
-      tempElement.innerHTML = html;
-      
+      // Parse the HTML safely without executing scripts or firing
+      // resource-load side effects (avoids innerHTML sink; CodeQL js/xss-through-dom).
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+
       // Get text content
-      return tempElement.textContent || tempElement.innerText || html;
+      return doc.body.textContent || html;
     } catch (error) {
       // If there's an error, return the original HTML
       return html;

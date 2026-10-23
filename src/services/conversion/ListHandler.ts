@@ -84,23 +84,24 @@ export class ListHandler implements ListHandlerService {
    */
   private stripHtmlPreserveFormatting(html: string): string {
     try {
-      // Create a temporary element to parse the HTML
-      const tempElement = document.createElement('div');
-      tempElement.innerHTML = html;
-      
+      // Parse the HTML safely without executing scripts or firing
+      // resource-load side effects (avoids innerHTML sink; CodeQL js/xss-through-dom).
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const container = doc.body;
+
       // Replace <br> tags with newlines
-      const brTags = tempElement.querySelectorAll('br');
+      const brTags = container.querySelectorAll('br');
       brTags.forEach(br => br.replaceWith('\n'));
       
       // Replace <p> tags with double newlines
-      const pTags = tempElement.querySelectorAll('p');
+      const pTags = container.querySelectorAll('p');
       pTags.forEach(p => {
         const text = p.textContent || '';
         p.replaceWith(`${text}\n\n`);
       });
       
       // Get text content
-      let text = tempElement.textContent || '';
+      let text = container.textContent || '';
       
       // Remove extra whitespace
       text = text.replace(/\s+/g, ' ').trim();
@@ -149,12 +150,12 @@ export class ListHandler implements ListHandlerService {
    */
   private extractNestedListItems(html: string): string[] {
     try {
-      // Create a temporary element to parse the HTML
-      const tempElement = document.createElement('div');
-      tempElement.innerHTML = html;
-      
+      // Parse the HTML safely without executing scripts or firing
+      // resource-load side effects (avoids innerHTML sink; CodeQL js/xss-through-dom).
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+
       // Find all nested lists
-      const nestedLists = tempElement.querySelectorAll('ul, ol');
+      const nestedLists = doc.body.querySelectorAll('ul, ol');
       
       // Extract items from all nested lists
       const nestedItems: string[] = [];

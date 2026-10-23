@@ -705,7 +705,10 @@ export class ConversionOrchestrator {
       
       // Validate that we have at least one section with meaningful content
       const meaningfulSections = parsedContent.sections.filter(section => {
-        const textContent = section.content.replace(/<[^>]*>/g, '').trim();
+        // Parse the HTML safely to extract text instead of an incomplete
+        // tag-stripping regex (CodeQL js/incomplete-multi-character-sanitization).
+        const doc = new DOMParser().parseFromString(section.content, 'text/html');
+        const textContent = (doc.body.textContent || '').trim();
         return textContent.length > 0;
       });
       
