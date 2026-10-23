@@ -228,10 +228,10 @@ export class PptxGenerator implements PptxGeneratorService {
    * @returns Text content without HTML tags
    */
   private stripHtmlTags(html: string): string {
-    // Create a temporary element to parse the HTML
-    const tempElement = document.createElement('div');
-    tempElement.innerHTML = html;
-    return tempElement.textContent || tempElement.innerText || '';
+    // Parse the HTML safely without executing scripts or firing
+    // resource-load side effects (avoids innerHTML sink; CodeQL js/xss-through-dom).
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return doc.body.textContent || '';
   }
   
   /**
